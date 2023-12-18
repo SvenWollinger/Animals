@@ -5,6 +5,7 @@ import kotlinx.browser.window
 import org.w3c.dom.*
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
+import org.w3c.dom.events.MouseEvent
 
 fun main() {
     val gameElement = document.getElementsByTagName("game")[0]

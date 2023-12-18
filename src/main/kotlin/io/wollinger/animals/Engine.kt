@@ -1,52 +1,60 @@
 package io.wollinger.animals
 
+import io.wollinger.animals.utils.Const
 import io.wollinger.animals.utils.FPSCounter
+import io.wollinger.animals.utils.use
 import kotlinx.browser.window
+import kotlinx.html.MATH
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
+import org.w3c.dom.events.MouseEvent
+import kotlin.math.min
 
-data class AnimalInstance(
-    val animal: Animal
-)
-
-object Const {
-    const val BOARD_VIRT_SCALE: Int = 1000
-    const val BOARD_VIRT_DIFF = 0.8
-    val BOARD_VIRT_HEIGHT = BOARD_VIRT_SCALE
-
-    val BOARD_VIRT_WIDTH = (BOARD_VIRT_SCALE * BOARD_VIRT_DIFF).toInt()
-    const val BOARD_VIRT_WALL_THICKNESS = 32
-}
-
-fun CanvasRenderingContext2D.use(translateX: Double = 0.0, translateY: Double = 0.0, angle: Double = 0.0, action: CanvasRenderingContext2D.() -> Unit) {
-    translate(translateX, translateY)
-    rotate(angle)
-//
-   action.invoke(this)
-//
-    rotate(-angle)
-
-    translate(-translateX, -translateY)
-}
 
 class Engine(
     private val canvas: HTMLCanvasElement,
     private val ctx: CanvasRenderingContext2D,
     private val input: Input
 ) {
-    private val animals = HashMap<Int, AnimalInstance>()
+    private val animals = HashMap<Int, Animal>()
     private val engine = Matter.Engine.create()
 
     private val fpsCounter = FPSCounter()
 
     fun addAnimal(animal: Animal, x: Double) {
-        val body = Matter.Bodies.circle(x * Const.BOARD_VIRT_WIDTH, 0, (15..100).random(), { }, 25)
+        val body = Matter.Bodies.circle(x * Const.BOARD_VIRT_WIDTH, 0, animal.size * Const.ANIMAL_SCALE, { }, 25)
         Matter.Composite.add(engine.world, arrayOf(body))
-        animals[body.id as Int] = AnimalInstance(animal)
+        animals[body.id as Int] = animal
     }
 
+    var aX = 0.0
 
     init {
+
+        window.addEventListener(type = "mousedown", options = false, callback = {
+            it as MouseEvent
+            val boardHeight = window.innerHeight * 0.8
+            val boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
+            val test = ((it.x - 64) / boardWidth).coerceIn(0.0, 1.0)
+            addAnimal(Animal.values().random(), test)
+        })
+
+        Matter.Events.on(engine, "collisionActive") { event  ->
+            (event.pairs as Array<dynamic>).forEach {
+                println("id: ${it.id}")
+                val coll = animals[it.id]
+                println("Collided with: $coll")
+            }
+
+        }
+
+
+        window.addEventListener(type = "mousemove", options = false, callback = {
+            it as MouseEvent
+            val boardHeight = window.innerHeight * 0.8
+            val boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
+            aX = (it.x - 64) / boardWidth
+        })
 
         fun wall(x: Int, y: Int, width: Int, height: Int): dynamic {
             val body = Matter.Bodies.rectangle(x + width / 2, y + height / 2, width, height)
@@ -74,7 +82,7 @@ class Engine(
         counter += delta
         if(counter >= 1000) {
             counter -= 1000
-            addAnimal(AnimalDB[0], (1..10).random() / 10.0)
+            //addAnimal(AnimalDB[0], (1..10).random() / 10.0)
         }
 
         Matter.Engine.update(engine, delta)
@@ -137,15 +145,19 @@ class Engine(
                 angle = body.angle as Double
             ) {
                 val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth) as Double
-                drawImage(animal.animal.image, -radius, -radius, radius * 2, radius * 2)
+                drawImage(animal.image, -radius, -radius, radius * 2, radius * 2)
             }
 
         }
+
+        //ctx.drawImage(AnimalDB[1].image, offsetX, offsetY, 32.0, 32.0)
 
         //Debug Text
         ctx.fillStyle = "black"
         ctx.font = "${size}px Roboto Mono"
         ctx.fillText("FPS: ${fpsCounter.getString()}", 0.0, size)
+        ctx.fillText("C: $aX", 0.0, size * 2)
+
 
         fpsCounter.frame()
     }
