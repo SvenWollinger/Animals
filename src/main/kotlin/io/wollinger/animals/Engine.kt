@@ -18,6 +18,17 @@ object Const {
     const val BOARD_VIRT_WALL_THICKNESS = 32
 }
 
+fun CanvasRenderingContext2D.use(translateX: Double = 0.0, translateY: Double = 0.0, angle: Double = 0.0, action: CanvasRenderingContext2D.() -> Unit) {
+    translate(translateX, translateY)
+    rotate(angle)
+//
+   action.invoke(this)
+//
+    rotate(-angle)
+
+    translate(-translateX, -translateY)
+}
+
 class Engine(
     private val canvas: HTMLCanvasElement,
     private val ctx: CanvasRenderingContext2D,
@@ -120,12 +131,15 @@ class Engine(
 
             val x = ((body.position.x as Double) / Const.BOARD_VIRT_WIDTH) * boardWidth
             val y = ((body.position.y as Double) / Const.BOARD_VIRT_HEIGHT) * boardHeight
-            ctx.translate(x + offsetX , y + offsetY);
-            ctx.rotate(body.angle as Double)
-            val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth) as Double
-            ctx.drawImage(animal.animal.image, -radius, -radius, radius * 2, radius * 2)
-            ctx.rotate(-(body.angle as Double))
-            ctx.translate(-(x + offsetX), -(y + offsetY));
+            ctx.use(
+                translateX = x + offsetX,
+                translateY = y + offsetY,
+                angle = body.angle as Double
+            ) {
+                val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth) as Double
+                drawImage(animal.animal.image, -radius, -radius, radius * 2, radius * 2)
+            }
+
         }
 
         //Debug Text
