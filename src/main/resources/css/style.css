@@ -1,0 +1,18 @@
+@font-face {
+    font-family: "Roboto Mono";
+    font-display: swap;
+    src: url("../fonts/RobotoMono-Medium.ttf") format("truetype");
+}
+
+body {
+    font-family: "Roboto Mono", monospace;
+    padding: 0;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+#canvas {
+    height: 100vh;
+    width: 100vw;
+    display: block;
+}
