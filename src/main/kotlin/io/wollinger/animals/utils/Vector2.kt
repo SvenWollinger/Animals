@@ -10,6 +10,16 @@ class Vector2(var x: Double = 0.0, var y: Double = 0.0) {
         this.y = y
     }
 
+    operator fun plus(other: Vector2): Vector2 {
+        this.x += other.x
+        this.y += other.y
+        return this
+    }
+
+    operator fun div(n: Int): Vector2 {
+        return Vector2(x / n, y / n)
+    }
+
     override fun equals(other: Any?): Boolean {
         return other is Vector2 && x == other.x && y == other.y
     }

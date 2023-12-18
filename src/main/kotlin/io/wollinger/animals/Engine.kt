@@ -1,8 +1,7 @@
 package io.wollinger.animals
 
-import io.wollinger.animals.utils.Const
-import io.wollinger.animals.utils.FPSCounter
-import io.wollinger.animals.utils.use
+import io.wollinger.animals.utils.*
+import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.html.MATH
 import org.w3c.dom.CanvasRenderingContext2D
@@ -22,7 +21,11 @@ class Engine(
     private val fpsCounter = FPSCounter()
 
     fun addAnimal(animal: Animal, x: Double) {
-        val body = Matter.Bodies.circle(x * Const.BOARD_VIRT_WIDTH, 0, animal.size * Const.ANIMAL_SCALE, { }, 25)
+        addAnimal(animal, x * Const.BOARD_VIRT_WIDTH, 0.0)
+    }
+
+    fun addAnimal(animal: Animal, x: Double, y: Double) {
+        val body = Matter.Bodies.circle(x, y, animal.size * Const.ANIMAL_SCALE, { }, 25)
         Matter.Composite.add(engine.world, arrayOf(body))
         animals[body.id as Int] = animal
     }
@@ -36,14 +39,29 @@ class Engine(
             val boardHeight = window.innerHeight * 0.8
             val boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
             val test = ((it.x - 64) / boardWidth).coerceIn(0.0, 1.0)
-            addAnimal(Animal.values().random(), test)
+            addAnimal(Animal.values().first(), test)
         })
 
         Matter.Events.on(engine, "collisionActive") { event  ->
-            (event.pairs as Array<dynamic>).forEach {
-                println("id: ${it.id}")
-                val coll = animals[it.id]
-                println("Collided with: $coll")
+            dynamicToCollisionEvent(event).pairs.forEach {
+                val a = animals[it.bodyA.id]
+                val b = animals[it.bodyB.id]
+
+                if(a != null && b != null && a == b) {
+                    val middle = (it.bodyA.position + it.bodyB.position) / 2
+                    animals.removeAll(it.bodyA.id, it.bodyB.id)
+
+                    Matter.Composite.remove(engine.world, it.bodyA.bodyRef)
+                    Matter.Composite.remove(engine.world, it.bodyB.bodyRef)
+
+                    val next = Animal.values().indexOf(a) + 1
+                    if(next >= Animal.values().size) {
+                        window.alert("You won!")
+                        document.location!!.reload()
+                    } else {
+                        addAnimal(Animal.values()[next], middle.x, middle.y)
+                    }
+                }
             }
 
         }
@@ -74,17 +92,7 @@ class Engine(
         window.requestAnimationFrame(::loop)
     }
 
-
-
-
-    var counter = 0.0
     private fun update(delta: Double) {
-        counter += delta
-        if(counter >= 1000) {
-            counter -= 1000
-            //addAnimal(AnimalDB[0], (1..10).random() / 10.0)
-        }
-
         Matter.Engine.update(engine, delta)
     }
 
