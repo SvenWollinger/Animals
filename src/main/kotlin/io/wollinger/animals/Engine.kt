@@ -126,8 +126,6 @@ class Engine(
             ctx.drawImage(animal.animal.image, -radius, -radius, radius * 2, radius * 2)
             ctx.rotate(-(body.angle as Double))
             ctx.translate(-(x + offsetX), -(y + offsetY));
-
-
         }
 
         //Debug Text
