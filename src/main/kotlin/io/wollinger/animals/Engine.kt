@@ -13,7 +13,7 @@ class Engine(
     private val ctx: CanvasRenderingContext2D,
     private val input: Input
 ) {
-    private val engine = Matter.Engine.create()
+    private val matter = Matter()
     private lateinit var next: Animal
 
     private fun newAnimal() {
@@ -26,14 +26,9 @@ class Engine(
 
     private val fpsCounter = FPSCounter()
 
-    private fun addAnimal(animal: Animal, x: Double) {
-        addAnimal(animal, x * Const.BOARD_VIRT_WIDTH, 0.0)
-    }
-
+    private fun addAnimal(animal: Animal, x: Double) = addAnimal(animal, x * Const.BOARD_VIRT_WIDTH, 0.0)
     private fun addAnimal(animal: Animal, x: Double, y: Double) {
-        val body = Matter.Bodies.circle(x, y, animal.size * Const.ANIMAL_SCALE, { }, 50)
-        body.label = animal.name
-        Matter.Composite.add(engine.world, arrayOf(body))
+        matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Const.ANIMAL_SCALE)
     }
 
     private var aX = 0.0
@@ -54,20 +49,21 @@ class Engine(
 
 
 
-        Matter.Events.on(engine, "collisionStart") { event  ->
-            dynamicToCollisionEvent(event).pairs.forEach {
-                if(it.bodyA.label == "wall" || it.bodyB.label == "wall") return@forEach
-                val a = Animal.valueOf(it.bodyA.label)
-                val b = Animal.valueOf(it.bodyB.label)
+        matter.onCollisionStart { event  ->
+            event.pairs.forEach { pair ->
+                val bodyA = pair.first
+                val bodyB = pair.second
+                if(bodyA.label == "wall" || bodyB.label == "wall") return@forEach
 
-                if(a == b) {
-                    val middle = (it.bodyA.position + it.bodyB.position) / 2
-                    //animals.removeAll(it.bodyA.id, it.bodyB.id)
+                val animalA = Animal.valueOf(bodyA.label)
+                val animalB = Animal.valueOf(bodyB.label)
 
-                    Matter.Composite.remove(engine.world, it.bodyA.bodyRef)
-                    Matter.Composite.remove(engine.world, it.bodyB.bodyRef)
+                if(animalA == animalB) {
+                    val middle = (bodyA.position + bodyB.position) / 2
 
-                    val next = Animal.values().indexOf(a) + 1
+                    matter.remove(bodyA.ref, bodyB.ref)
+
+                    val next = Animal.values().indexOf(animalA) + 1
                     if(next >= Animal.values().size) {
                         window.alert("You won!")
                         document.location!!.reload()
@@ -76,9 +72,7 @@ class Engine(
                     }
                 }
             }
-
         }
-
 
         window.addEventListener(type = "mousemove", options = false, callback = {
             it as MouseEvent
@@ -87,28 +81,21 @@ class Engine(
             aX = (it.x - 64) / boardWidth
         })
 
-        fun wall(x: Int, y: Int, width: Int, height: Int): dynamic {
-            val body = Matter.Bodies.rectangle(x + width / 2, y + height / 2, width, height)
-            body.isStatic = true
-            body.isSensor = false
-            body.label = "wall"
-            return body
+        fun wall(x: Int, y: Int, width: Int, height: Int) {
+            matter.addRectangle(label = "wall", isStatic = true, x = x + width / 2, y = y + height / 2, width = width, height = height)
         }
         val t = Const.BOARD_VIRT_WALL_THICKNESS
         val w = Const.BOARD_VIRT_WIDTH
         val h = Const.BOARD_VIRT_HEIGHT
-        Matter.Composite.add(engine.world, arrayOf(
-            wall(-t, 0, t, h),
-            wall(w, 0, t, h),
-            wall(0, h, w, t),
-        ))
-
+        wall(-t, 0, t, h)
+        wall(w, 0, t, h)
+        wall(0, h, w, t)
 
         window.requestAnimationFrame(::loop)
     }
 
     private fun update(delta: Double) {
-        Matter.Engine.update(engine, delta)
+        matter.update(delta)
     }
 
     private fun size() = canvas.height / 16.0
@@ -131,24 +118,19 @@ class Engine(
         val offsetX = 64.0
         val offsetY = 64.0
 
-
-
-        (Matter.Composite.allBodies(engine.world) as Array<dynamic>).forEach { body ->
-            val pBody = bodyToPhysicsBody(body)
-            if(pBody.label == "wall") return@forEach
-            val animal = Animal.valueOf(pBody.label)
-
-            val x = ((pBody.position.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
-            val y = ((pBody.position.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
+        matter.getBodies().forEach {  body ->
+            if(body.label == "wall") return@forEach
+            val animal = Animal.valueOf(body.label)
+            val x = ((body.position.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
+            val y = ((body.position.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
             ctx.use(
                 translateX = x + offsetX,
                 translateY = y + offsetY,
-                angle = body.angle as Double
+                angle = body.angle
             ) {
-                val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth) as Double
+                val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth)
                 drawImage(animal.image, -radius, -radius, radius * 2, radius * 2)
             }
-
         }
 
         if(!input.isPressed("f")) {
@@ -157,14 +139,14 @@ class Engine(
             ctx.strokeStyle = "black"
             ctx.beginPath()
 
-            (Matter.Composite.allBodies(engine.world) as Array<dynamic>).forEach { body ->
+            matter.getBodies().forEach { body ->
                 data class Vert(val x: Double, val y: Double)
                 fun vert(vertice: dynamic): Vert {
                     val nX = ((vertice.x as Double) / Const.BOARD_VIRT_WIDTH) * boardWidth
                     val nY = ((vertice.y as Double) / Const.BOARD_VIRT_HEIGHT) * boardHeight
                     return Vert(nX, nY)
                 }
-                val vertices = (body.vertices as Array<dynamic>).map { vert(it) }
+                val vertices = body.vertices.map { vert(it) }
                 ctx.moveTo(vertices[0].x, vertices[0].y)
                 vertices.forEach { ctx.lineTo(it.x, it.y) }
                 ctx.lineTo(vertices[0].x, vertices[0].y)
@@ -191,7 +173,7 @@ class Engine(
         ctx.fillStyle = "black"
         ctx.font = "${size}px Roboto Mono"
         ctx.fillText("FPS: ${fpsCounter.getString()}", 0.0, size)
-        val count = (Matter.Composite.allBodies(engine.world) as Array<dynamic>).size
+        val count = matter.getBodies().size
         ctx.fillText("C: $aX", 0.0, size * 2)
         ctx.fillText("Bodies: $count", 0.0, size * 3)
 
