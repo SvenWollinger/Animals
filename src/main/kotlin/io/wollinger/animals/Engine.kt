@@ -7,6 +7,7 @@ import kotlinx.html.MATH
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.events.MouseEvent
+import kotlin.js.Date
 import kotlin.math.min
 
 
@@ -17,6 +18,13 @@ class Engine(
 ) {
     private val animals = HashMap<Int, Animal>()
     private val engine = Matter.Engine.create()
+    private var next: Animal = Animal.PARROT
+    fun newAnimal() {
+        next = Animal.values().copyOfRange(0, 3).random()
+    }
+    init {
+        newAnimal()
+    }
 
     private val fpsCounter = FPSCounter()
 
@@ -24,22 +32,28 @@ class Engine(
         addAnimal(animal, x * Const.BOARD_VIRT_WIDTH, 0.0)
     }
 
+
     fun addAnimal(animal: Animal, x: Double, y: Double) {
-        val body = Matter.Bodies.circle(x, y, animal.size * Const.ANIMAL_SCALE, { }, 25)
+        val body = Matter.Bodies.circle(x, y, animal.size * Const.ANIMAL_SCALE, { }, 40)
         Matter.Composite.add(engine.world, arrayOf(body))
         animals[body.id as Int] = animal
     }
 
     var aX = 0.0
+    var lastClick = Date.now()
 
+    val timeout = 750
     init {
 
         window.addEventListener(type = "mousedown", options = false, callback = {
+            if(lastClick + timeout > Date.now()) return@addEventListener
             it as MouseEvent
             val boardHeight = window.innerHeight * 0.8
             val boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
             val test = ((it.x - 64) / boardWidth).coerceIn(0.0, 1.0)
-            addAnimal(Animal.values().first(), test)
+            addAnimal(next, test)
+            newAnimal()
+            lastClick = Date.now()
         })
 
 
@@ -120,6 +134,24 @@ class Engine(
         val offsetX = 64.0
         val offsetY = 64.0
 
+
+
+        (Matter.Composite.allBodies(engine.world) as Array<dynamic>).forEach { body ->
+            val animal = animals[body.id as Int] ?: return@forEach
+
+            val x = ((body.position.x as Double) / Const.BOARD_VIRT_WIDTH) * boardWidth
+            val y = ((body.position.y as Double) / Const.BOARD_VIRT_HEIGHT) * boardHeight
+            ctx.use(
+                translateX = x + offsetX,
+                translateY = y + offsetY,
+                angle = body.angle as Double
+            ) {
+                val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth) as Double
+                drawImage(animal.image, -radius, -radius, radius * 2, radius * 2)
+            }
+
+        }
+
         if(!input.isPressed("f")) {
             ctx.translate(offsetX, offsetY)
             ctx.fillStyle = "black"
@@ -145,23 +177,16 @@ class Engine(
             ctx.translate(-offsetX, -offsetY)
         }
 
-        (Matter.Composite.allBodies(engine.world) as Array<dynamic>).forEach { body ->
-            val animal = animals[body.id as Int] ?: return@forEach
-
-            val x = ((body.position.x as Double) / Const.BOARD_VIRT_WIDTH) * boardWidth
-            val y = ((body.position.y as Double) / Const.BOARD_VIRT_HEIGHT) * boardHeight
-            ctx.use(
-                translateX = x + offsetX,
-                translateY = y + offsetY,
-                angle = body.angle as Double
-            ) {
-                val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth) as Double
-                drawImage(animal.image, -radius, -radius, radius * 2, radius * 2)
-            }
-
+        val xtest = boardWidth * aX.coerceIn(0.0, 1.0)
+        //ctx.drawImage(next.image, offsetX + xtest, offsetY, 32.0, 32.0)
+        if(lastClick + timeout < Date.now())
+            ctx.drawImage(next.image, offsetX + boardWidth + 128, window.innerHeight / 2.0 - 64, 128.0, 128.0)
+        var n = 0.0
+        Animal.values().forEachIndexed { i, animal ->
+            var size = 96.0 * animal.size
+            ctx.drawImage(animal.image, 32 + offsetX + boardWidth + n, 0.0, size, size)
+            n += size
         }
-
-        //ctx.drawImage(AnimalDB[1].image, offsetX, offsetY, 32.0, 32.0)
 
         //Debug Text
         ctx.fillStyle = "black"
