@@ -3,48 +3,44 @@ package io.wollinger.animals
 import io.wollinger.animals.utils.*
 import kotlinx.browser.document
 import kotlinx.browser.window
-import kotlinx.html.MATH
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.events.MouseEvent
 import kotlin.js.Date
-import kotlin.math.min
-
 
 class Engine(
     private val canvas: HTMLCanvasElement,
     private val ctx: CanvasRenderingContext2D,
     private val input: Input
 ) {
-    private val animals = HashMap<Int, Animal>()
     private val engine = Matter.Engine.create()
-    private var next: Animal = Animal.PARROT
-    fun newAnimal() {
+    private lateinit var next: Animal
+
+    private fun newAnimal() {
         next = Animal.values().copyOfRange(0, 3).random()
     }
+
     init {
         newAnimal()
     }
 
     private val fpsCounter = FPSCounter()
 
-    fun addAnimal(animal: Animal, x: Double) {
+    private fun addAnimal(animal: Animal, x: Double) {
         addAnimal(animal, x * Const.BOARD_VIRT_WIDTH, 0.0)
     }
 
-
-    fun addAnimal(animal: Animal, x: Double, y: Double) {
-        val body = Matter.Bodies.circle(x, y, animal.size * Const.ANIMAL_SCALE, { }, 40)
+    private fun addAnimal(animal: Animal, x: Double, y: Double) {
+        val body = Matter.Bodies.circle(x, y, animal.size * Const.ANIMAL_SCALE, { }, 50)
+        body.label = animal.name
         Matter.Composite.add(engine.world, arrayOf(body))
-        animals[body.id as Int] = animal
     }
 
-    var aX = 0.0
-    var lastClick = Date.now()
+    private var aX = 0.0
+    private var lastClick = Date.now()
 
-    val timeout = 750
+    private val timeout = 300
     init {
-
         window.addEventListener(type = "mousedown", options = false, callback = {
             if(lastClick + timeout > Date.now()) return@addEventListener
             it as MouseEvent
@@ -60,12 +56,13 @@ class Engine(
 
         Matter.Events.on(engine, "collisionStart") { event  ->
             dynamicToCollisionEvent(event).pairs.forEach {
-                val a = animals[it.bodyA.id]
-                val b = animals[it.bodyB.id]
+                if(it.bodyA.label == "wall" || it.bodyB.label == "wall") return@forEach
+                val a = Animal.valueOf(it.bodyA.label)
+                val b = Animal.valueOf(it.bodyB.label)
 
-                if(a != null && b != null && a == b) {
+                if(a == b) {
                     val middle = (it.bodyA.position + it.bodyB.position) / 2
-                    animals.removeAll(it.bodyA.id, it.bodyB.id)
+                    //animals.removeAll(it.bodyA.id, it.bodyB.id)
 
                     Matter.Composite.remove(engine.world, it.bodyA.bodyRef)
                     Matter.Composite.remove(engine.world, it.bodyB.bodyRef)
@@ -94,6 +91,7 @@ class Engine(
             val body = Matter.Bodies.rectangle(x + width / 2, y + height / 2, width, height)
             body.isStatic = true
             body.isSensor = false
+            body.label = "wall"
             return body
         }
         val t = Const.BOARD_VIRT_WALL_THICKNESS
@@ -122,7 +120,6 @@ class Engine(
             ctx.imageSmoothingEnabled = false
         }
         val size = size()
-        //Size of one sprite
 
         //Fill background
         ctx.fillStyle = "#9290ff"
@@ -137,10 +134,12 @@ class Engine(
 
 
         (Matter.Composite.allBodies(engine.world) as Array<dynamic>).forEach { body ->
-            val animal = animals[body.id as Int] ?: return@forEach
+            val pBody = bodyToPhysicsBody(body)
+            if(pBody.label == "wall") return@forEach
+            val animal = Animal.valueOf(pBody.label)
 
-            val x = ((body.position.x as Double) / Const.BOARD_VIRT_WIDTH) * boardWidth
-            val y = ((body.position.y as Double) / Const.BOARD_VIRT_HEIGHT) * boardHeight
+            val x = ((pBody.position.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
+            val y = ((pBody.position.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
             ctx.use(
                 translateX = x + offsetX,
                 translateY = y + offsetY,
@@ -171,8 +170,8 @@ class Engine(
                 ctx.lineTo(vertices[0].x, vertices[0].y)
             }
 
-            ctx.lineWidth = 1.0;
-            ctx.strokeStyle = "black";
+            ctx.lineWidth = 1.0
+            ctx.strokeStyle = "black"
             ctx.stroke()
             ctx.translate(-offsetX, -offsetY)
         }
@@ -192,15 +191,16 @@ class Engine(
         ctx.fillStyle = "black"
         ctx.font = "${size}px Roboto Mono"
         ctx.fillText("FPS: ${fpsCounter.getString()}", 0.0, size)
+        val count = (Matter.Composite.allBodies(engine.world) as Array<dynamic>).size
         ctx.fillText("C: $aX", 0.0, size * 2)
-
+        ctx.fillText("Bodies: $count", 0.0, size * 3)
 
         fpsCounter.frame()
     }
 
     var lastRender = 0.0
     private fun loop(timestamp: Double) {
-        val delta = (timestamp - lastRender)
+        val delta = (timestamp - lastRender).coerceIn(0.0, 20.0)
         update(delta)
         draw()
 

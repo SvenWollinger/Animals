@@ -25,7 +25,7 @@ fun dynamicToCollisionEvent(event: dynamic): CollisionActiveEvent {
 
 }
 
-fun bodyToPhysicsBody(body: dynamic) = PhysicsBody(body.id, Vector2(body.position.x, body.position.y), body)
+fun bodyToPhysicsBody(body: dynamic) = PhysicsBody(body.id, Vector2(body.position.x, body.position.y), body.label, body)
 
 data class CollisionActiveEvent(
     val pairs: List<CollisionActiveEventPair>
@@ -42,4 +42,4 @@ fun <T> HashMap<T, *>.removeAll(vararg keys: T) {
     }
 }
 
-data class PhysicsBody(val id: Int, val position: Vector2, val bodyRef: dynamic)
+data class PhysicsBody(val id: Int, val position: Vector2, val label: String, val bodyRef: dynamic)
