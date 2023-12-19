@@ -42,7 +42,9 @@ class Engine(
             addAnimal(Animal.values().first(), test)
         })
 
-        Matter.Events.on(engine, "collisionActive") { event  ->
+
+
+        Matter.Events.on(engine, "collisionStart") { event  ->
             dynamicToCollisionEvent(event).pairs.forEach {
                 val a = animals[it.bodyA.id]
                 val b = animals[it.bodyB.id]
@@ -77,6 +79,7 @@ class Engine(
         fun wall(x: Int, y: Int, width: Int, height: Int): dynamic {
             val body = Matter.Bodies.rectangle(x + width / 2, y + height / 2, width, height)
             body.isStatic = true
+            body.isSensor = false
             return body
         }
         val t = Const.BOARD_VIRT_WALL_THICKNESS
