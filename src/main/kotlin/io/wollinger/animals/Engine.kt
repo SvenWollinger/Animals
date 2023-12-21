@@ -1,8 +1,8 @@
 package io.wollinger.animals
 
 import io.wollinger.animals.utils.*
-import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.*
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.events.MouseEvent
@@ -37,6 +37,59 @@ class Engine(
     private var lastClick = Date.now()
 
     private val timeout = 300
+
+
+
+    @OptIn(DelicateCoroutinesApi::class)
+    fun won(winnerA: Body, winnerB: Body) {
+        matter.timescale = 0.0
+        GlobalScope.async {
+            matter.getBodies().filter { it.label != "wall" && it.id != winnerA.id && it.id != winnerB.id }.forEach {
+                delay(200)
+                matter.remove(it.ref)
+            }
+            var running = true
+            launch {
+                delay(5000)
+                running = false
+            }
+            var intense = 0.2
+            launch {
+                delay(25)
+                intense += 1
+            }
+            while(running) {
+                winnerA.ref.position.x += listOf(-intense, intense).random()
+                winnerA.ref.position.y += listOf(-intense, intense).random()
+                winnerB.ref.position.x += listOf(-intense, intense).random()
+                winnerB.ref.position.y += listOf(-intense, intense).random()
+                delay(50)
+            }
+            val bodyNewA = Body.fromDynamic(winnerA.ref)
+            val bodyNewB = Body.fromDynamic(winnerB.ref)
+            val middle = (bodyNewA.position + bodyNewB.position) / 2
+
+            val directionA = (bodyNewA.position - middle) / 20
+            val directionB = (bodyNewB.position - middle) / 20
+
+            repeat(20) {
+                winnerA.ref.position.x -= directionA.x + listOf(-intense, intense).random()
+                winnerA.ref.position.y -= directionA.y + listOf(-intense, intense).random()
+                winnerB.ref.position.x -= directionB.x + listOf(-intense, intense).random()
+                winnerB.ref.position.y -= directionB.y + listOf(-intense, intense).random()
+                delay(20)
+            }
+            repeat(20) {
+                winnerA.ref.circleRadius += 10
+                winnerB.ref.circleRadius += 10
+                delay(1)
+            }
+            matter.remove(winnerA.ref, winnerB.ref)
+            matter.addCircle("coin", middle.x, middle.y, 1.0  * Const.ANIMAL_SCALE)
+            matter.timescale = 1.0
+        }
+    }
+
     init {
         window.addEventListener(type = "mousedown", options = false, callback = {
             if(lastClick + timeout > Date.now()) return@addEventListener
@@ -46,8 +99,6 @@ class Engine(
             newAnimal()
             lastClick = Date.now()
         })
-
-
 
         matter.onCollisionStart { event  ->
             val blackList = ArrayList<Int>()
@@ -61,15 +112,13 @@ class Engine(
                 if(animalA == animalB && !blackList.containsAny(bodyA.id, bodyB.id)) {
                     blackList.addAll(bodyA.id, bodyB.id)
                     val middle = (bodyA.position + bodyB.position) / 2
-                    matter.remove(bodyA.ref, bodyB.ref)
 
-                    val next = Animal.values().indexOf(animalA) + 1
-                    if(next >= Animal.values().size) {
-                        window.alert("You won!")
-                        document.location!!.reload()
-                    } else {
-                        addAnimal(Animal.values()[next], middle.x, middle.y)
-                    }
+                    val next = animalA.next()
+                    if(next != null) {
+                        matter.remove(bodyA.ref, bodyB.ref)
+                        addAnimal(next, middle.x, middle.y)
+                    } else if(animalA == Animal.values().last())
+                        won(bodyA, bodyB)
                 }
             }
         }
@@ -143,6 +192,19 @@ class Engine(
 
         matter.getBodies().forEach {  body ->
             if(body.label == "wall") return@forEach
+            if(body.label == "coin") {
+                val x = ((body.position.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
+                val y = ((body.position.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
+                ctx.use(
+                    translateX = x + offsetX,
+                    translateY = y + offsetY,
+                    angle = body.angle
+                ) {
+                    val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth)
+                    drawImage(image("/img/coin.png"), -radius, -radius, radius * 2, radius * 2)
+                }
+                return@forEach
+            }
             val animal = Animal.valueOf(body.label)
             val x = ((body.position.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
             val y = ((body.position.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
