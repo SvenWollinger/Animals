@@ -3,8 +3,10 @@ package io.wollinger.animals
 import io.wollinger.animals.utils.*
 import kotlinx.browser.window
 import kotlinx.coroutines.*
+import org.w3c.dom.Audio
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
+import org.w3c.dom.Image
 import org.w3c.dom.events.MouseEvent
 import kotlin.js.Date
 
@@ -101,6 +103,7 @@ class Engine(
         })
 
         matter.onCollisionStart { event  ->
+            Audio("/sound/touch.mp3").play()
             val blackList = ArrayList<Int>()
             event.pairs.filter { it.first.label != "wall" && it.second.label != "wall" }.forEach { pair ->
                 val bodyA = pair.first
@@ -115,9 +118,10 @@ class Engine(
 
                     val next = animalA.next()
                     if(next != null) {
+                        Audio("/sound/poof.ogg").play()
                         matter.remove(bodyA.ref, bodyB.ref)
                         addAnimal(next, middle.x, middle.y)
-                    } else if(animalA == Animal.values().last())
+                    } else if(animalA == Animal.entries.last())
                         won(bodyA, bodyB)
                 }
             }
@@ -143,9 +147,29 @@ class Engine(
         window.requestAnimationFrame(::loop)
     }
 
+    data class Cloud(val rect: Rectangle, val speed: Double, val image: Image = image(listOf("/img/cloud0.png", "/img/cloud1.png", "/img/cloud2.png").random()))
+    val clouds = ArrayList<Cloud>()
+    var cloudSpawn = 0.0
+    val cloudSpawnLimit: Double
+        get() = (2500..15000).random().toDouble()
     private fun update(delta: Double) {
         matter.update(delta)
         if(input.isJustPressed("f")) isDebug = !isDebug
+
+        if(clouds.size < 3 && cloudSpawn >= cloudSpawnLimit) {
+            cloudSpawn = 0.0
+            val heightZone = window.innerHeight / 5
+            clouds.add(Cloud(Rectangle(-199.0, (0..heightZone).random().toDouble(), 200.0, 200.0), listOf(0.1, 0.05, 0.08).random()))
+        }
+
+        clouds.forEach {
+            it.rect.x +=  it.speed * delta
+            val screen = Rectangle(0.0, 0.0, window.innerWidth.toDouble(), window.innerHeight.toDouble())
+            if(!screen.intersects(it.rect)) clouds.remove(it)
+        }
+
+        cloudSpawn += delta
+
     }
 
     var buildInfo: BuildInfo? = null
@@ -197,6 +221,10 @@ class Engine(
         ctx.fillStyle = "#9290ff"
         ctx.fillRect(0.0, 0.0, window.innerWidth.toDouble(), window.innerHeight.toDouble())
 
+        clouds.forEach {
+            val r = it.rect
+            ctx.drawImage(it.image, r.x, r.y, r.width, r.height)
+        }
 
         matter.getBodies().forEach {  body ->
             if(body.label == "wall") return@forEach
