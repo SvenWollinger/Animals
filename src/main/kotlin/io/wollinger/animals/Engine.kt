@@ -39,9 +39,7 @@ class Engine(
         window.addEventListener(type = "mousedown", options = false, callback = {
             if(lastClick + timeout > Date.now()) return@addEventListener
             it as MouseEvent
-            val boardHeight = window.innerHeight * 0.8
-            val boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
-            val test = ((it.x - 64) / boardWidth).coerceIn(0.0, 1.0)
+            val test = ((it.x - offsetX) / boardWidth).coerceIn(0.0, 1.0)
             addAnimal(next, test)
             newAnimal()
             lastClick = Date.now()
@@ -78,7 +76,7 @@ class Engine(
             it as MouseEvent
             val boardHeight = window.innerHeight * 0.8
             val boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
-            aX = (it.x - 64) / boardWidth
+            aX = (it.x - offsetX) / boardWidth
         })
 
         fun wall(x: Int, y: Int, width: Int, height: Int) {
@@ -96,11 +94,37 @@ class Engine(
 
     private fun update(delta: Double) {
         matter.update(delta)
+        if(input.isJustPressed("f")) isDebug = !isDebug
     }
 
-    private fun size() = canvas.height / 16.0
+    private val iFenceMid = image("/img/ladder_mid.png")
+    private val iGrass = image("/img/grass.png")
+    var tileSize = 0.0
 
+
+    private fun size() = canvas.height / 16.0
+    var boardHeight: Double = 0.0// =
+    var boardWidth: Double = 0.0// = boardHeight * Const.BOARD_VIRT_DIFF
+    var offsetX: Double = 0.0
+    var offsetY = 0.0
+    var isDebug = false
     private fun draw() {
+        val width = window.innerWidth
+        val height = window.innerHeight
+        if(width >= height) {
+            boardHeight = window.innerHeight * 0.9
+            boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
+            offsetX = (window.innerWidth / 2.0) - boardWidth / 2.0
+            offsetY = 0.0
+            tileSize = boardWidth / 16
+        } else if(height > width) {
+            boardWidth = window.innerWidth * 0.9
+            boardHeight = boardWidth * 1.2
+            offsetX = window.innerWidth * 0.05
+            tileSize = boardWidth / 16
+            offsetY = (window.innerHeight) - boardHeight - tileSize
+        }
+
         if(canvas.width != window.innerWidth || canvas.height != window.innerHeight) {
             canvas.width = window.innerWidth
             canvas.height = window.innerHeight
@@ -112,11 +136,6 @@ class Engine(
         ctx.fillStyle = "#9290ff"
         ctx.fillRect(0.0, 0.0, window.innerWidth.toDouble(), window.innerHeight.toDouble())
 
-        val boardHeight = window.innerHeight * 0.8
-        val boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
-
-        val offsetX = 64.0
-        val offsetY = 64.0
 
         matter.getBodies().forEach {  body ->
             if(body.label == "wall") return@forEach
@@ -133,7 +152,7 @@ class Engine(
             }
         }
 
-        if(!input.isPressed("f")) {
+        if(isDebug) {
             ctx.translate(offsetX, offsetY)
             ctx.fillStyle = "black"
             ctx.strokeStyle = "black"
@@ -158,7 +177,7 @@ class Engine(
             ctx.translate(-offsetX, -offsetY)
         }
 
-        val xtest = boardWidth * aX.coerceIn(0.0, 1.0)
+        //val xtest = boardWidth * aX.coerceIn(0.0, 1.0)
         //ctx.drawImage(next.image, offsetX + xtest, offsetY, 32.0, 32.0)
         if(lastClick + timeout < Date.now())
             ctx.drawImage(next.image, offsetX + boardWidth + 128, window.innerHeight / 2.0 - 64, 128.0, 128.0)
@@ -167,6 +186,20 @@ class Engine(
             val currentSize = 96.0 * animal.size
             ctx.drawImage(animal.image, 32 + offsetX + boardWidth + n, 0.0, currentSize, currentSize)
             n += currentSize
+        }
+
+
+
+        val cY = (boardHeight / tileSize).toInt() + 1
+        for(i in 0 until cY) {
+            ctx.drawImage(iFenceMid, offsetX - tileSize, offsetY + i * tileSize, tileSize, tileSize)
+            ctx.drawImage(iFenceMid, offsetX + boardWidth, offsetY + i * tileSize, tileSize, tileSize)
+
+        }
+
+        val c = (boardWidth / tileSize).toInt() + 1
+        for(i in -1 until c) {
+            ctx.drawImage(iGrass, offsetX + i * tileSize, offsetY + boardHeight, tileSize, tileSize)
         }
 
         //Debug Text

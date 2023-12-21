@@ -12,4 +12,11 @@ class Input {
     }
 
     fun isPressed(key: String) = pressed.contains(key)
+    fun isJustPressed(key: String): Boolean {
+        if(isPressed(key)) {
+            pressed.remove(key)
+            return true
+        }
+        return false
+    }
 }
