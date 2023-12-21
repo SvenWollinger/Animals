@@ -11,7 +11,7 @@ enum class Animal(val size: Double, val image: Image) {
     PIG(1.0, image("/img/round/pig.png")),
     PENGUIN(1.15, image("/img/round/penguin.png")),
     PANDA(1.3, image("/img/round/panda.png")),
-    WALRUS(1.5, image("/img/round/walrus.png"))
+    WALRUS(1.5, image("/img/round/walrus.png"));
 
-
+    fun next(): Animal? = values().getOrNull(Animal.values().indexOf(this) + 1)
 }
