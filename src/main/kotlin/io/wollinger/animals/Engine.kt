@@ -17,7 +17,7 @@ class Engine(
     private lateinit var next: Animal
 
     private fun newAnimal() {
-        next = Animal.values().copyOfRange(0, 3).random()
+        next = Animal.entries.toTypedArray().copyOfRange(0, 3).random()
     }
 
     init {

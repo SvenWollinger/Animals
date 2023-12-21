@@ -48,6 +48,8 @@ class Matter {
     fun addCircle(label: String = "circle", x: Double, y: Double, radius: Double, detail: Int = 50) {
         val body = _matter.Bodies.circle(x, y, radius, detail)
         body.label = label
+        body.restitution = 0.3
+        _matter.Body.setMass(body, 0.5 * radius)
         _matter.Composite.add(engine.world, arrayOf(body))
     }
 }
