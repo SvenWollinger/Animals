@@ -31,6 +31,8 @@ class Engine(
         matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Const.ANIMAL_SCALE)
     }
 
+    var isMobile = false
+
     private var aX = 0.0
     private var lastClick = Date.now()
 
@@ -112,12 +114,14 @@ class Engine(
         val width = window.innerWidth
         val height = window.innerHeight
         if(width >= height) {
+            isMobile = false
             boardHeight = window.innerHeight * 0.9
             boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
             offsetX = (window.innerWidth / 2.0) - boardWidth / 2.0
             offsetY = 0.0
             tileSize = boardWidth / 16
         } else if(height > width) {
+            isMobile = true
             boardWidth = window.innerWidth * 0.9
             boardHeight = boardWidth * 1.2
             offsetX = window.innerWidth * 0.05
@@ -179,13 +183,25 @@ class Engine(
 
         //val xtest = boardWidth * aX.coerceIn(0.0, 1.0)
         //ctx.drawImage(next.image, offsetX + xtest, offsetY, 32.0, 32.0)
-        if(lastClick + timeout < Date.now())
-            ctx.drawImage(next.image, offsetX + boardWidth + 128, window.innerHeight / 2.0 - 64, 128.0, 128.0)
-        var n = 0.0
-        Animal.values().forEach { animal ->
-            val currentSize = 96.0 * animal.size
-            ctx.drawImage(animal.image, 32 + offsetX + boardWidth + n, 0.0, currentSize, currentSize)
-            n += currentSize
+        if(lastClick + timeout < Date.now()) {
+            if(!isMobile) {
+                var n = 0.0
+                Animal.values().forEach { animal ->
+                    val currentSize = 96.0 * animal.size
+                    ctx.drawImage(animal.image, 32 + offsetX + boardWidth + n, 0.0, currentSize, currentSize)
+                    n += currentSize
+                }
+                ctx.drawImage(next.image, offsetX + boardWidth + 128, window.innerHeight / 2.0 - 64, 128.0, 128.0)
+            } else {
+                val pSize = 128.0 * next.size
+                val pureX = (offsetX + boardWidth / 2) - pSize / 2
+                ctx.drawImage(next.image, pureX, 256.0, pSize, pSize)
+                var tileGG = window.innerWidth / Animal.values().size + 0.0
+                Animal.values().forEachIndexed { i, animal ->
+                    val pX = i * tileGG
+                    ctx.drawImage(animal.image, pX.toDouble(), 0.0, tileGG, tileGG)
+                }
+            }
         }
 
 
@@ -202,13 +218,15 @@ class Engine(
             ctx.drawImage(iGrass, offsetX + i * tileSize, offsetY + boardHeight, tileSize, tileSize)
         }
 
-        //Debug Text
-        ctx.fillStyle = "black"
-        ctx.font = "${size}px Roboto Mono"
-        ctx.fillText("FPS: ${fpsCounter.getString()}", 0.0, size)
-        val count = matter.getBodies().size
-        ctx.fillText("C: $aX", 0.0, size * 2)
-        ctx.fillText("Bodies: $count", 0.0, size * 3)
+        if(isDebug) {
+            //Debug Text
+            ctx.fillStyle = "black"
+            ctx.font = "${size}px Roboto Mono"
+            ctx.fillText("FPS: ${fpsCounter.getString()}", 0.0, size)
+            val count = matter.getBodies().size
+            ctx.fillText("C: $aX", 0.0, size * 2)
+            ctx.fillText("Bodies: $count", 0.0, size * 3)
+        }
 
         fpsCounter.frame()
     }
