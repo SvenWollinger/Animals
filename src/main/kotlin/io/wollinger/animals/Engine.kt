@@ -50,7 +50,8 @@ class Engine(
 
 
         matter.onCollisionStart { event  ->
-            event.pairs.forEach { pair ->
+            var blackList = ArrayList<Int>()
+            event.pairs.filter { it.first.label != "wall" && it.second.label != "wall" }.forEach { pair ->
                 val bodyA = pair.first
                 val bodyB = pair.second
                 if(bodyA.label == "wall" || bodyB.label == "wall") return@forEach
@@ -58,7 +59,8 @@ class Engine(
                 val animalA = Animal.valueOf(bodyA.label)
                 val animalB = Animal.valueOf(bodyB.label)
 
-                if(animalA == animalB) {
+                if(animalA == animalB && !blackList.contains(bodyA.id) && !blackList.contains(bodyB.id)) {
+                    blackList.addAll(listOf(bodyA.id, bodyB.id))
                     val middle = (bodyA.position + bodyB.position) / 2
 
                     matter.remove(bodyA.ref, bodyB.ref)
@@ -181,8 +183,6 @@ class Engine(
             ctx.translate(-offsetX, -offsetY)
         }
 
-        //val xtest = boardWidth * aX.coerceIn(0.0, 1.0)
-        //ctx.drawImage(next.image, offsetX + xtest, offsetY, 32.0, 32.0)
         if(lastClick + timeout < Date.now()) {
             if(!isMobile) {
                 var n = 0.0
@@ -196,10 +196,9 @@ class Engine(
                 val pSize = 128.0 * next.size
                 val pureX = (offsetX + boardWidth / 2) - pSize / 2
                 ctx.drawImage(next.image, pureX, 256.0, pSize, pSize)
-                var tileGG = window.innerWidth / Animal.values().size + 0.0
+                val tileSize = window.innerWidth / Animal.values().size + 0.0
                 Animal.values().forEachIndexed { i, animal ->
-                    val pX = i * tileGG
-                    ctx.drawImage(animal.image, pX.toDouble(), 0.0, tileGG, tileGG)
+                    ctx.drawImage(animal.image, i * tileSize, 0.0, tileSize, tileSize)
                 }
             }
         }

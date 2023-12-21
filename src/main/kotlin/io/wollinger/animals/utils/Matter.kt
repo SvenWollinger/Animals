@@ -57,6 +57,7 @@ data class CollisionEvent(
 )
 
 data class Body(
+    val id: Int,
     val label: String,
     val position: Vector2,
     val circleRadius: Double = 0.0,
@@ -66,7 +67,7 @@ data class Body(
 ) {
     companion object {
         fun fromDynamic(body: dynamic): Body {
-            return Body(body.label, Vector2(body.position.x, body.position.y), body.circleRadius, body.angle, body.vertices, body)
+            return Body(body.id, body.label, Vector2(body.position.x, body.position.y), body.circleRadius, body.angle, body.vertices, body)
         }
     }
 }
