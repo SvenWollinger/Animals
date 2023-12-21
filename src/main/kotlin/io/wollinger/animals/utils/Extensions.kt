@@ -19,3 +19,13 @@ fun <T> HashMap<T, *>.removeAll(vararg keys: T) {
     }
 }
 
+fun <T> Collection<T>.containsAny(vararg args: T): Boolean {
+    args.forEach {
+        if(contains(it)) return true
+    }
+    return false
+}
+
+fun <T> ArrayList<T>.addAll(vararg args: T) {
+    addAll(args.toList())
+}

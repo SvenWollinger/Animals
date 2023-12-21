@@ -50,19 +50,17 @@ class Engine(
 
 
         matter.onCollisionStart { event  ->
-            var blackList = ArrayList<Int>()
+            val blackList = ArrayList<Int>()
             event.pairs.filter { it.first.label != "wall" && it.second.label != "wall" }.forEach { pair ->
                 val bodyA = pair.first
                 val bodyB = pair.second
-                if(bodyA.label == "wall" || bodyB.label == "wall") return@forEach
 
                 val animalA = Animal.valueOf(bodyA.label)
                 val animalB = Animal.valueOf(bodyB.label)
 
-                if(animalA == animalB && !blackList.contains(bodyA.id) && !blackList.contains(bodyB.id)) {
-                    blackList.addAll(listOf(bodyA.id, bodyB.id))
+                if(animalA == animalB && !blackList.containsAny(bodyA.id, bodyB.id)) {
+                    blackList.addAll(bodyA.id, bodyB.id)
                     val middle = (bodyA.position + bodyB.position) / 2
-
                     matter.remove(bodyA.ref, bodyB.ref)
 
                     val next = Animal.values().indexOf(animalA) + 1
