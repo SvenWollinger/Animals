@@ -148,6 +148,14 @@ class Engine(
         if(input.isJustPressed("f")) isDebug = !isDebug
     }
 
+    var buildInfo: BuildInfo? = null
+
+    init {
+        dl<BuildInfo>("/build.json") {
+            buildInfo = it
+        }
+    }
+
     private val iFenceMid = image("/img/ladder_mid.png")
     private val iGrass = image("/img/grass.png")
     var tileSize = 0.0
@@ -218,6 +226,18 @@ class Engine(
             }
         }
 
+        val cY = (boardHeight / tileSize).toInt() + 1
+        for(i in 0 until cY) {
+            ctx.drawImage(iFenceMid, offsetX - tileSize, offsetY + i * tileSize, tileSize, tileSize)
+            ctx.drawImage(iFenceMid, offsetX + boardWidth, offsetY + i * tileSize, tileSize, tileSize)
+
+        }
+
+        val c = (boardWidth / tileSize).toInt() + 1
+        for(i in -1 until c) {
+            ctx.drawImage(iGrass, offsetX + i * tileSize, offsetY + boardHeight, tileSize, tileSize)
+        }
+
         if(isDebug) {
             ctx.translate(offsetX, offsetY)
             ctx.fillStyle = "black"
@@ -243,54 +263,51 @@ class Engine(
             ctx.translate(-offsetX, -offsetY)
         }
 
+        if(!isMobile) {
+            var n = 0.0
+            Animal.values().forEach { animal ->
+                val currentSize = 96.0 * animal.size
+                ctx.drawImage(animal.image, 32 + offsetX + boardWidth + n, 0.0, currentSize, currentSize)
+                n += currentSize
+            }
+        } else {
+            val tileSize = window.innerWidth / Animal.values().size + 0.0
+            Animal.values().forEachIndexed { i, animal ->
+                ctx.drawImage(animal.image, i * tileSize, 0.0, tileSize, tileSize)
+            }
+        }
+
         if(lastClick + timeout < Date.now()) {
             if(!isMobile) {
-                var n = 0.0
-                Animal.values().forEach { animal ->
-                    val currentSize = 96.0 * animal.size
-                    ctx.drawImage(animal.image, 32 + offsetX + boardWidth + n, 0.0, currentSize, currentSize)
-                    n += currentSize
-                }
                 ctx.drawImage(next.image, offsetX + boardWidth + 128, window.innerHeight / 2.0 - 64, 128.0, 128.0)
             } else {
                 val pSize = 128.0 * next.size
                 val pureX = (offsetX + boardWidth / 2) - pSize / 2
                 ctx.drawImage(next.image, pureX, 256.0, pSize, pSize)
-                val tileSize = window.innerWidth / Animal.values().size + 0.0
-                Animal.values().forEachIndexed { i, animal ->
-                    ctx.drawImage(animal.image, i * tileSize, 0.0, tileSize, tileSize)
-                }
+
             }
         }
 
-
-
-        val cY = (boardHeight / tileSize).toInt() + 1
-        for(i in 0 until cY) {
-            ctx.drawImage(iFenceMid, offsetX - tileSize, offsetY + i * tileSize, tileSize, tileSize)
-            ctx.drawImage(iFenceMid, offsetX + boardWidth, offsetY + i * tileSize, tileSize, tileSize)
-
-        }
-
-        val c = (boardWidth / tileSize).toInt() + 1
-        for(i in -1 until c) {
-            ctx.drawImage(iGrass, offsetX + i * tileSize, offsetY + boardHeight, tileSize, tileSize)
-        }
-
         if(isDebug) {
+            var i = 1
+            fun msg(message: String) {
+                ctx.fillText(message, 0.0, size * i)
+                i++
+            }
             //Debug Text
             ctx.fillStyle = "black"
             ctx.font = "${size}px Roboto Mono"
-            ctx.fillText("FPS: ${fpsCounter.getString()}", 0.0, size)
-            val count = matter.getBodies().size
-            ctx.fillText("C: $aX", 0.0, size * 2)
-            ctx.fillText("Bodies: $count", 0.0, size * 3)
+            msg("FPS: ${fpsCounter.getString()}")
+            msg("Bodies: ${matter.getBodies().size}")
+            buildInfo?.let {
+                msg("v${it.version} (${it.githash}) (${Date(it.timestamp).prettyString()}): ${it.commitMessage}")
+            }
         }
 
         fpsCounter.frame()
     }
 
-    var lastRender = 0.0
+    private var lastRender = 0.0
     private fun loop(timestamp: Double) {
         val delta = (timestamp - lastRender).coerceIn(0.0, 20.0)
         update(delta)

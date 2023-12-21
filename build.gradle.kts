@@ -3,6 +3,7 @@ import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.encoding.encodeStructure
 import kotlinx.serialization.json.Json
+import java.io.ByteArrayOutputStream
 
 plugins {
     kotlin("js") version "1.9.21"
@@ -34,19 +35,25 @@ dependencies {
 }
 
 data class BuildInfo(
+    val version: String,
     val githash: String,
+    val commitMessage: String,
     val timestamp: Long
 ) {
     companion object Serializer: SerializationStrategy<BuildInfo> {
         override val descriptor = buildClassSerialDescriptor("BuildInfo") {
+            element<String>("version")
             element<String>("githash")
+            element<String>("commitMessage")
             element<Long>("timestamp")
         }
 
         override fun serialize(encoder: Encoder, value: BuildInfo) {
             encoder.encodeStructure(descriptor) {
-                encodeStringElement(descriptor, 0, value.githash)
-                encodeLongElement(descriptor, 1, value.timestamp)
+                encodeStringElement(descriptor, 0, value.version)
+                encodeStringElement(descriptor, 1, value.githash)
+                encodeStringElement(descriptor, 2, value.commitMessage)
+                encodeLongElement(descriptor, 3, value.timestamp)
             }
         }
     }
@@ -56,7 +63,12 @@ fun createBuildFile() {
     File("src/main/resources/build.json").apply {
         createNewFile()
         //Create and write buildinfo
-        val buildInfo = BuildInfo("Just a little test :)...", System.currentTimeMillis())
+        val buildInfo = BuildInfo(
+            version = version.toString(),
+            githash = gitHash(),
+            commitMessage = gitMsg(),
+            timestamp = System.currentTimeMillis()
+        )
         writeText(Json.encodeToString(
             serializer = BuildInfo.Serializer,
             value = buildInfo
@@ -69,6 +81,18 @@ task<Exec>("buildAndRun") {
     workingDir("build/dist/js/productionExecutable")
     commandLine("php", "-S", "127.0.0.1:80")
 }
+
+fun exec(cmd: String): String {
+    val os = ByteArrayOutputStream()
+    project.exec {
+        commandLine = cmd.split(" ")
+        standardOutput = os
+    }
+    return String(os.toByteArray()).trim()
+}
+
+fun gitHash() = exec("git rev-parse --short HEAD")
+fun gitMsg() = exec("git log -1 --pretty=%B")
 
 kotlin {
     js(IR) {
