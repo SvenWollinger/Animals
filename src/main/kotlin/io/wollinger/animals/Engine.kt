@@ -181,7 +181,7 @@ class Engine(
         if(canvas.width != window.innerWidth || canvas.height != window.innerHeight) {
             canvas.width = window.innerWidth
             canvas.height = window.innerHeight
-            ctx.imageSmoothingEnabled = false
+            ctx.imageSmoothingEnabled = true
         }
         val size = size()
 
