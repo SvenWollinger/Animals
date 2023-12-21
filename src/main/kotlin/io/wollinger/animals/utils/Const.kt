@@ -8,5 +8,5 @@ object Const {
     val BOARD_VIRT_WIDTH = (BOARD_VIRT_SCALE * BOARD_VIRT_DIFF).toInt()
     val ANIMAL_SCALE = BOARD_VIRT_WIDTH / 6
 
-        const val BOARD_VIRT_WALL_THICKNESS = 32
+        const val BOARD_VIRT_WALL_THICKNESS = 256
 }

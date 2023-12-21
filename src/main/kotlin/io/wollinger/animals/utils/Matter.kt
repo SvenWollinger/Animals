@@ -7,6 +7,10 @@ private external val _matter: dynamic
 class Matter {
     private val engine = _matter.Engine.create()
 
+    var timescale: Double
+        get() = engine.timing.timescale as Double
+        set(value) = run { engine.timing.timeScale = value }
+
     fun update(delta: Double) {
         _matter.Engine.update(engine, delta)
     }

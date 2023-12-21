@@ -163,10 +163,10 @@ class Engine(
         if(lastClick + timeout < Date.now())
             ctx.drawImage(next.image, offsetX + boardWidth + 128, window.innerHeight / 2.0 - 64, 128.0, 128.0)
         var n = 0.0
-        Animal.values().forEachIndexed { i, animal ->
-            var size = 96.0 * animal.size
-            ctx.drawImage(animal.image, 32 + offsetX + boardWidth + n, 0.0, size, size)
-            n += size
+        Animal.values().forEach { animal ->
+            val currentSize = 96.0 * animal.size
+            ctx.drawImage(animal.image, 32 + offsetX + boardWidth + n, 0.0, currentSize, currentSize)
+            n += currentSize
         }
 
         //Debug Text
