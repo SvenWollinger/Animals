@@ -5,8 +5,8 @@ import kotlinx.serialization.encoding.encodeStructure
 import kotlinx.serialization.json.Json
 
 plugins {
-    kotlin("js") version "1.8.20"
-    kotlin("plugin.serialization") version "1.8.20"
+    kotlin("js") version "1.9.21"
+    kotlin("plugin.serialization") version "1.9.21"
 }
 
 group = "io.wollinger.animals"
@@ -26,6 +26,8 @@ buildscript {
 dependencies {
     testImplementation(kotlin("test"))
     implementation(kotlin("stdlib-js"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0-RC")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-js:1.8.0-RC")
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-html-js", version = "0.8.0")
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.5.1")
     implementation(npm(name = "matter-js", version = "0.19.0"))
@@ -64,7 +66,7 @@ fun createBuildFile() {
 
 task<Exec>("buildAndRun") {
     dependsOn("browserDistribution")
-    workingDir("build/distributions")
+    workingDir("build/dist/js/productionExecutable")
     commandLine("php", "-S", "127.0.0.1:80")
 }
 
@@ -76,7 +78,7 @@ kotlin {
             }
             webpackTask {
                 createBuildFile()
-                this.outputFileName = "app.js"
+                this.mainOutputFileName.set("app.js")
             }
         }
         binaries.executable()
