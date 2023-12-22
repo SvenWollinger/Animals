@@ -32,7 +32,7 @@ class Engine(
         matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Const.ANIMAL_SCALE)
     }
 
-    var isMobile = false
+    private var isMobile = false
 
     private var aX = 0.0
     private var lastClick = Date.now()
