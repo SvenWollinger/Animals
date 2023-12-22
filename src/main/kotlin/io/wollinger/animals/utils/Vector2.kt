@@ -1,8 +1,10 @@
 package io.wollinger.animals.utils
 
+import kotlinx.serialization.Serializable
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+@Serializable
 class Vector2(var x: Double = 0.0, var y: Double = 0.0) {
     fun distance(other: Vector2) = sqrt((other.y - this.y).pow(2) + (other.x - this.x).pow(2))
     fun set(x: Double = this.x, y: Double = this.y) {

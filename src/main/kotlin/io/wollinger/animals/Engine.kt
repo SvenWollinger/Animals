@@ -1,13 +1,18 @@
 package io.wollinger.animals
 
 import io.wollinger.animals.utils.*
+import kotlinx.browser.localStorage
 import kotlinx.browser.window
 import kotlinx.coroutines.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.Image
 import org.w3c.dom.events.MouseEvent
 import kotlin.js.Date
+import kotlin.js.json
 
 class Engine(
     private val canvas: HTMLCanvasElement,
@@ -28,8 +33,8 @@ class Engine(
     private val fpsCounter = FPSCounter()
 
     private fun addAnimal(animal: Animal, x: Double) = addAnimal(animal, x * Const.BOARD_VIRT_WIDTH, 0.0)
-    private fun addAnimal(animal: Animal, x: Double, y: Double) {
-        matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Const.ANIMAL_SCALE)
+    private fun addAnimal(animal: Animal, x: Double, y: Double, angle: Double = 0.0) {
+        matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Const.ANIMAL_SCALE, angle = angle)
     }
 
     private var isMobile = false
@@ -137,11 +142,49 @@ class Engine(
         window.requestAnimationFrame(::loop)
     }
 
+    @Serializable
+    data class SavedAnimal(val animal: String, val position: Vector2, val angle: Double)
+    @Serializable
+    data class Save(val animals: List<SavedAnimal>)
+
+    fun save() {
+        val animals = matter.getBodies().filter { it.label != "wall" && it.label != "coin" }.map {
+            SavedAnimal(it.label, it.position, it.angle)
+        }
+        val save = Save(animals)
+        localStorage.setItem("quicksave", Json.encodeToString(save))
+    }
+
+    fun load() {
+        val json = localStorage.getItem("quicksave") ?: return
+        reset()
+        val save = Json.decodeFromString<Save>(json)
+        matter.timescale = 0.0
+        save.animals.forEach {
+            val animal = Animal.valueOf(it.animal)
+            addAnimal(animal, it.position.x, it.position.y, it.angle)
+        }
+        matter.timescale = 1.0
+        println("Loaded save: $save")
+    }
+
+    fun reset() {
+        matter.getBodies().forEach {
+            if(it.label == "wall") return@forEach
+            matter.remove(it)
+        }
+    }
+
     data class Cloud(val rect: Rectangle, val speed: Double, val image: Image = Resources.CLOUDS.random())
     private val clouds = ArrayList<Cloud>()
     private var cloudSpawn = 0.0
     private val cloudSpawnLimit: Double get() = (2500..15000).random().toDouble()
+
     private fun update(delta: Double) {
+        if(input.isJustPressed("s")) save()
+        if(input.isJustPressed("r")) reset()
+        if(input.isJustPressed("l")) load()
+
         matter.update(delta)
         if(input.isJustPressed("f")) isDebug = !isDebug
 
