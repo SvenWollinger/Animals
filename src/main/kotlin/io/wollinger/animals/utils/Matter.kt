@@ -27,10 +27,8 @@ class Matter {
         return temp.map { Body.fromDynamic(it) }.toList()
     }
 
-    fun remove(vararg body: dynamic) {
-        body.forEach {
-            _matter.Composite.remove(engine.world, it)
-        }
+    fun remove(vararg body: Body) {
+        body.map { it.ref }.forEach { _matter.Composite.remove(engine.world, it) }
     }
 
     fun onCollisionStart(action: (CollisionEvent) -> Unit) {
