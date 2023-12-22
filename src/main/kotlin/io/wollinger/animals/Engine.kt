@@ -189,7 +189,7 @@ class Engine(
     var frames = ArrayList<String>()
 
     private fun update(delta: Double) {
-        if(input.isPressed("o")) { //test
+        if(input.isPressed("o")) {
             loadString(frames.removeLast())
         } else {
             frames.add(saveString())
