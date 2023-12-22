@@ -1,5 +1,7 @@
 package io.wollinger.animals.utils
 
+import kotlin.js.json
+
 @JsModule("matter-js")
 @JsNonModule
 private external val _matter: dynamic
@@ -43,13 +45,14 @@ class Matter {
         }
     }
 
-    fun addCircle(label: String = "circle", x: Double, y: Double, radius: Double, detail: Int = 50, angle: Double = 0.0) {
+    fun addCircle(label: String = "circle", x: Double, y: Double, radius: Double, detail: Int = 50, angle: Double = 0.0, velocity: Vector2 = Vector2()) {
         val body = _matter.Bodies.circle(x, y, radius, detail)
         body.label = label
         body.restitution = 0.3
-        _matter.Body.rotate(body, angle)//body.rotate(angle)
+        _matter.Body.rotate(body, angle)
         _matter.Body.setMass(body, 0.5 * radius)
         _matter.Composite.add(engine.world, arrayOf(body))
+        _matter.Body.setVelocity(body, json(Pair("x", velocity.x), Pair("y", velocity.y)))
     }
 }
 
@@ -64,12 +67,21 @@ data class Body(
     val circleRadius: Double = 0.0,
     val angle: Double = 0.0,
     val vertices: List<Vector2>,
+    val velocity: Vector2,
     val ref: dynamic
 ) {
     companion object {
         fun fromDynamic(body: dynamic): Body {
-            val verts = (body.vertices as Array<dynamic>).map { Vector2(it.x, it.y) }
-            return Body(body.id, body.label, Vector2(body.position.x, body.position.y), body.circleRadius, body.angle, verts, body)
+            return Body(
+                id = body.id as Int,
+                label = body.label as String,
+                position = Vector2.fromDynamic(body.position),
+                circleRadius = body.circleRadius as Double,
+                angle = body.angle as Double,
+                vertices = (body.vertices as Array<dynamic>).map { Vector2.fromDynamic(it) },
+                velocity = Vector2.fromDynamic(body.velocity),
+                ref = body
+            )
         }
     }
 }

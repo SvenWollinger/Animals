@@ -34,4 +34,8 @@ class Vector2(var x: Double = 0.0, var y: Double = 0.0) {
     }
     override fun toString() = "Vector2(x=${x.toFixed(2)}, y=${y.toFixed(2)})"
     override fun hashCode() = 31 * x.hashCode() + y.hashCode()
+
+    companion object {
+        fun fromDynamic(vector2: dynamic) = Vector2(vector2.x as Double, vector2.y as Double)
+    }
 }

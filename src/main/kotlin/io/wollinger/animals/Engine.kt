@@ -33,8 +33,8 @@ class Engine(
     private val fpsCounter = FPSCounter()
 
     private fun addAnimal(animal: Animal, x: Double) = addAnimal(animal, x * Const.BOARD_VIRT_WIDTH, 0.0)
-    private fun addAnimal(animal: Animal, x: Double, y: Double, angle: Double = 0.0) {
-        matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Const.ANIMAL_SCALE, angle = angle)
+    private fun addAnimal(animal: Animal, x: Double, y: Double, angle: Double = 0.0, velocity: Vector2 = Vector2()) {
+        matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Const.ANIMAL_SCALE, angle = angle, velocity = velocity)
     }
 
     private var isMobile = false
@@ -143,29 +143,35 @@ class Engine(
     }
 
     @Serializable
-    data class SavedAnimal(val animal: String, val position: Vector2, val angle: Double)
+    data class SavedAnimal(val animal: String, val position: Vector2, val angle: Double, val velocity: Vector2)
     @Serializable
     data class Save(val animals: List<SavedAnimal>)
 
-    fun save() {
+    fun saveString(): String {
         val animals = matter.getBodies().filter { it.label != "wall" && it.label != "coin" }.map {
-            SavedAnimal(it.label, it.position, it.angle)
+            SavedAnimal(it.label, it.position, it.angle, it.velocity)
         }
         val save = Save(animals)
-        localStorage.setItem("quicksave", Json.encodeToString(save))
+        return Json.encodeToString(save)
+    }
+    fun save() {
+        localStorage.setItem("quicksave", saveString())
     }
 
     fun load() {
         val json = localStorage.getItem("quicksave") ?: return
+        loadString(json)
+    }
+
+    fun loadString(string: String) {
         reset()
-        val save = Json.decodeFromString<Save>(json)
+        val save = Json.decodeFromString<Save>(string)
         matter.timescale = 0.0
         save.animals.forEach {
             val animal = Animal.valueOf(it.animal)
-            addAnimal(animal, it.position.x, it.position.y, it.angle)
+            addAnimal(animal, it.position.x, it.position.y, it.angle, it.velocity)
         }
         matter.timescale = 1.0
-        println("Loaded save: $save")
     }
 
     fun reset() {
@@ -180,7 +186,14 @@ class Engine(
     private var cloudSpawn = 0.0
     private val cloudSpawnLimit: Double get() = (2500..15000).random().toDouble()
 
+    var frames = ArrayList<String>()
+
     private fun update(delta: Double) {
+        if(input.isPressed("o")) {
+            loadString(frames.removeLast())
+        } else {
+            frames.add(saveString())
+        }
         if(input.isJustPressed("s")) save()
         if(input.isJustPressed("r")) reset()
         if(input.isJustPressed("l")) load()
