@@ -64,12 +64,13 @@ data class Body(
     val position: Vector2,
     val circleRadius: Double = 0.0,
     val angle: Double = 0.0,
-    val vertices: Array<dynamic>,
+    val vertices: List<Vector2>,
     val ref: dynamic
 ) {
     companion object {
         fun fromDynamic(body: dynamic): Body {
-            return Body(body.id, body.label, Vector2(body.position.x, body.position.y), body.circleRadius, body.angle, body.vertices, body)
+            val verts = (body.vertices as Array<dynamic>).map { Vector2(it.x, it.y) }
+            return Body(body.id, body.label, Vector2(body.position.x, body.position.y), body.circleRadius, body.angle, verts, body)
         }
     }
 }

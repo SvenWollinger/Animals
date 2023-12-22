@@ -41,6 +41,7 @@ class Engine(
 
     @OptIn(DelicateCoroutinesApi::class)
     fun won(winnerA: Body, winnerB: Body) {
+        lastClick = Date.now() + 100_000_000
         matter.timescale = 0.0
         GlobalScope.launch {
             matter.getBodies().filter { it.label != "wall" && it.id != winnerA.id && it.id != winnerB.id }.forEach {
@@ -266,17 +267,12 @@ class Engine(
             ctx.beginPath()
 
             matter.getBodies().forEach { body ->
-                data class Vert(val x: Double, val y: Double)
-                fun vert(vertice: dynamic): Vert {
-                    val nX = ((vertice.x as Double) / Const.BOARD_VIRT_WIDTH) * boardWidth
-                    val nY = ((vertice.y as Double) / Const.BOARD_VIRT_HEIGHT) * boardHeight
-                    return Vert(nX, nY)
+                val vertices = body.vertices.map {
+                    val nX = ((it.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
+                    val nY = ((it.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
+                    Vector2(nX, nY)
                 }
-
-                val vertices = body.vertices.map { vert(it) }
-                ctx.moveTo(vertices[0].x, vertices[0].y)
-                vertices.forEach { ctx.lineTo(it.x, it.y) }
-                ctx.lineTo(vertices[0].x, vertices[0].y)
+                ctx.trace(vertices)
             }
 
             ctx.lineWidth = 1.0
@@ -287,15 +283,23 @@ class Engine(
 
         if(!isMobile) {
             var n = 0.0
-            Animal.values().forEach { animal ->
+            Animal.entries.forEach { animal ->
                 val currentSize = 96.0 * animal.size
                 ctx.drawImage(animal.image, 32 + offsetX + boardWidth + n, 0.0, currentSize, currentSize)
                 n += currentSize
             }
         } else {
-            val tileSize = window.innerWidth / Animal.values().size + 0.0
-            Animal.values().forEachIndexed { i, animal ->
+            val tileSize = window.innerWidth / (Animal.entries.size * 2.0 - 1)
+
+            var i = 0
+            Animal.entries.forEach { animal ->
                 ctx.drawImage(animal.image, i * tileSize, 0.0, tileSize, tileSize)
+                i++
+                if(animal != Animal.entries.last()) {
+                    ctx.drawImage(Resources.ARROW_RIGHT, (i ) * tileSize, 0.0, tileSize, tileSize)
+                    i++
+                }
+
             }
         }
 
