@@ -3,7 +3,6 @@ package io.wollinger.animals
 import io.wollinger.animals.utils.*
 import kotlinx.browser.window
 import kotlinx.coroutines.*
-import org.w3c.dom.Audio
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.Image
@@ -40,12 +39,10 @@ class Engine(
 
     private val timeout = 300
 
-
-
     @OptIn(DelicateCoroutinesApi::class)
     fun won(winnerA: Body, winnerB: Body) {
         matter.timescale = 0.0
-        GlobalScope.async {
+        GlobalScope.launch {
             matter.getBodies().filter { it.label != "wall" && it.id != winnerA.id && it.id != winnerB.id }.forEach {
                 delay(200)
                 matter.remove(it.ref)
@@ -103,7 +100,7 @@ class Engine(
         })
 
         matter.onCollisionStart { event  ->
-            Audio("/sound/touch.mp3").play()
+            Resources.TOUCH.play()
             val blackList = ArrayList<Int>()
             event.pairs.filter { it.first.label != "wall" && it.second.label != "wall" }.forEach { pair ->
                 val bodyA = pair.first
@@ -118,7 +115,7 @@ class Engine(
 
                     val next = animalA.next()
                     if(next != null) {
-                        Audio("/sound/poof.ogg").play()
+                        Resources.POOF.play()
                         matter.remove(bodyA.ref, bodyB.ref)
                         addAnimal(next, middle.x, middle.y)
                     } else if(animalA == Animal.entries.last())
@@ -147,7 +144,7 @@ class Engine(
         window.requestAnimationFrame(::loop)
     }
 
-    data class Cloud(val rect: Rectangle, val speed: Double, val image: Image = image(listOf("/img/cloud0.png", "/img/cloud1.png", "/img/cloud2.png").random()))
+    data class Cloud(val rect: Rectangle, val speed: Double, val image: Image = Resources.CLOUDS.random())
     val clouds = ArrayList<Cloud>()
     var cloudSpawn = 0.0
     val cloudSpawnLimit: Double
@@ -180,15 +177,12 @@ class Engine(
         }
     }
 
-    private val iFenceMid = image("/img/ladder_mid.png")
-    private val iGrass = image("/img/grass.png")
     var tileSize = 0.0
 
-
     private fun size() = canvas.height / 16.0
-    var boardHeight: Double = 0.0// =
-    var boardWidth: Double = 0.0// = boardHeight * Const.BOARD_VIRT_DIFF
-    var offsetX: Double = 0.0
+    var boardHeight = 0.0
+    var boardWidth = 0.0
+    var offsetX = 0.0
     var offsetY = 0.0
     var isDebug = false
     private fun draw() {
@@ -237,7 +231,7 @@ class Engine(
                     angle = body.angle
                 ) {
                     val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth)
-                    drawImage(image("/img/coin.png"), -radius, -radius, radius * 2, radius * 2)
+                    drawImage(Resources.COIN, -radius, -radius, radius * 2, radius * 2)
                 }
                 return@forEach
             }
@@ -256,14 +250,13 @@ class Engine(
 
         val cY = (boardHeight / tileSize).toInt() + 1
         for(i in 0 until cY) {
-            ctx.drawImage(iFenceMid, offsetX - tileSize, offsetY + i * tileSize, tileSize, tileSize)
-            ctx.drawImage(iFenceMid, offsetX + boardWidth, offsetY + i * tileSize, tileSize, tileSize)
-
+            ctx.drawImage(Resources.FENCE, offsetX - tileSize, offsetY + i * tileSize, tileSize, tileSize)
+            ctx.drawImage(Resources.FENCE, offsetX + boardWidth, offsetY + i * tileSize, tileSize, tileSize)
         }
 
         val c = (boardWidth / tileSize).toInt() + 1
         for(i in -1 until c) {
-            ctx.drawImage(iGrass, offsetX + i * tileSize, offsetY + boardHeight, tileSize, tileSize)
+            ctx.drawImage(Resources.GRASS, offsetX + i * tileSize, offsetY + boardHeight, tileSize, tileSize)
         }
 
         if(isDebug) {
@@ -279,6 +272,7 @@ class Engine(
                     val nY = ((vertice.y as Double) / Const.BOARD_VIRT_HEIGHT) * boardHeight
                     return Vert(nX, nY)
                 }
+
                 val vertices = body.vertices.map { vert(it) }
                 ctx.moveTo(vertices[0].x, vertices[0].y)
                 vertices.forEach { ctx.lineTo(it.x, it.y) }
