@@ -369,6 +369,8 @@ class Engine(
             ctx.font = "${size}px Roboto Mono"
             msg("FPS: ${fpsCounter.getString()}")
             msg("Bodies: ${matter.getBodies().size}")
+            msg("Frames: ${frames.size}")
+            msg("Latest frame: ${frames.last()}")
             buildInfo?.let {
                 msg("v${it.version} (${it.githash}) (${Date(it.timestamp).prettyString()}): ${it.commitMessage}")
             }
