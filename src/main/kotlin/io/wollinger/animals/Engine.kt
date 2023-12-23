@@ -11,9 +11,11 @@ import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.Image
 import org.w3c.dom.events.MouseEvent
+import org.w3c.dom.get
 import kotlin.js.Date
 import kotlin.js.json
 
+@OptIn(DelicateCoroutinesApi::class)
 class Engine(
     private val canvas: HTMLCanvasElement,
     private val ctx: CanvasRenderingContext2D,
@@ -139,6 +141,14 @@ class Engine(
         wall(w, 0, t, h)
         wall(0, h, w, t)
 
+        val qs = localStorage.getItem("quicksave")
+        if(qs != null) load()
+        GlobalScope.launch {
+            while(true) {
+                delay(250)
+                save()
+            }
+        }
         window.requestAnimationFrame(::loop)
     }
 
@@ -154,11 +164,12 @@ class Engine(
         val save = Save(animals)
         return Json.encodeToString(save)
     }
-    fun save() {
+
+    private fun save() {
         localStorage.setItem("quicksave", saveString())
     }
 
-    fun load() {
+    private fun load() {
         val json = localStorage.getItem("quicksave") ?: return
         loadString(json)
     }
@@ -174,7 +185,7 @@ class Engine(
         matter.timescale = 1.0
     }
 
-    fun reset() {
+    private fun reset() {
         matter.getBodies().forEach {
             if(it.label == "wall") return@forEach
             matter.remove(it)
@@ -188,11 +199,13 @@ class Engine(
 
     var frames = ArrayList<String>()
 
+    var maxFrame = 0
     private fun update(delta: Double) {
         if(input.isPressed("o")) {
             loadString(frames.removeLast())
         } else {
             frames.add(saveString())
+            maxFrame = frames.size
         }
         if(input.isJustPressed("s")) save()
         if(input.isJustPressed("r")) reset()
@@ -209,7 +222,7 @@ class Engine(
 
         clouds.forEach {
             it.rect.x +=  it.speed * delta
-            val screen = Rectangle(0.0, 0.0, window.innerWidth.toDouble(), window.innerHeight.toDouble())
+            val screen = Rectangle(0, 0, window.innerWidth, window.innerHeight)
             if(!screen.intersects(it.rect)) clouds.remove(it)
         }
 
@@ -258,12 +271,9 @@ class Engine(
 
         //Fill background
         ctx.fillStyle = "#9290ff"
-        ctx.fillRect(0.0, 0.0, window.innerWidth.toDouble(), window.innerHeight.toDouble())
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
 
-        clouds.forEach {
-            val r = it.rect
-            ctx.drawImage(it.image, r.x, r.y, r.width, r.height)
-        }
+        clouds.forEach { it.rect.also { r -> ctx.drawImage(it.image, r.x, r.y, r.width, r.height) } }
 
         matter.getBodies().forEach {  body ->
             if(body.label == "wall") return@forEach
@@ -293,14 +303,12 @@ class Engine(
             }
         }
 
-        val cY = (boardHeight / tileSize).toInt() + 1
-        for(i in 0 until cY) {
+        for(i in 0 until (boardHeight / tileSize).toInt() + 1) {
             ctx.drawImage(Resources.FENCE, offset.x - tileSize, offset.y + i * tileSize, tileSize, tileSize)
             ctx.drawImage(Resources.FENCE, offset.x + boardWidth, offset.y + i * tileSize, tileSize, tileSize)
         }
 
-        val c = (boardWidth / tileSize).toInt() + 1
-        for(i in -1 until c) {
+        for(i in -1 until (boardWidth / tileSize).toInt() + 1) {
             ctx.drawImage(Resources.GRASS, offset.x + i * tileSize, offset.y + boardHeight, tileSize, tileSize)
         }
 
@@ -343,7 +351,6 @@ class Engine(
                     ctx.drawImage(Resources.ARROW_RIGHT, (i ) * tileSize, 0.0, tileSize, tileSize)
                     i++
                 }
-
             }
         }
 
@@ -354,26 +361,23 @@ class Engine(
                 val pSize = 128.0 * next.size
                 val pureX = (offset.x + boardWidth / 2) - pSize / 2
                 ctx.drawImage(next.image, pureX, 256.0, pSize, pSize)
-
             }
         }
 
         if(isDebug) {
-            var i = 1
+            var line = 1
             fun msg(message: String) {
-                ctx.fillText(message, 0.0, size * i)
-                i++
+                ctx.fillText(message, 0.0, size * line)
+                line++
             }
             //Debug Text
             ctx.fillStyle = "black"
             ctx.font = "${size}px Roboto Mono"
             msg("FPS: ${fpsCounter.getString()}")
             msg("Bodies: ${matter.getBodies().size}")
-            msg("Frames: ${frames.size}")
+            msg("Frames: ${frames.size}/$maxFrame")
             msg("Latest frame: ${frames.last()}")
-            buildInfo?.let {
-                msg("v${it.version} (${it.githash}) (${Date(it.timestamp).prettyString()}): ${it.commitMessage}")
-            }
+            buildInfo?.let { msg("v${it.version} (${it.githash}) (${Date(it.timestamp).prettyString()}): ${it.commitMessage}") }
         }
 
         fpsCounter.frame()

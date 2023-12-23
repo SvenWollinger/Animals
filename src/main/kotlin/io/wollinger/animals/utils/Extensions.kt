@@ -31,6 +31,7 @@ fun <T> ArrayList<T>.addAll(vararg args: T) {
     addAll(args.toList())
 }
 
+fun CanvasRenderingContext2D.fillRect(x: Int, y: Int, width: Int, height: Int) = fillRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
 fun CanvasRenderingContext2D.moveTo(vector2: Vector2) = moveTo(vector2.x, vector2.y)
 fun CanvasRenderingContext2D.lineTo(vector2: Vector2) = lineTo(vector2.x, vector2.y)
 fun CanvasRenderingContext2D.trace(points: List<Vector2>) {

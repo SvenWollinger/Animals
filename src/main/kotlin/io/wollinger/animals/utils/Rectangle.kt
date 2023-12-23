@@ -6,6 +6,8 @@ data class Rectangle(
     var width: Double = 0.0,
     var height: Double = 0.0
 ) {
+    constructor(x: Number, y: Number, width: Number, height: Number) : this(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
+
     fun from(x: Double, y: Double, width: Double, height: Double) {
         this.x = x
         this.y = y
