@@ -48,7 +48,7 @@ class Engine(
         lastClick = Date.now() + 100_000_000
         matter.timescale = 0.0
         GlobalScope.launch {
-            matter.getBodies().filter { it.label != "wall" && it.id != winnerA.id && it.id != winnerB.id }.forEach {
+            matter.getBodies().filter { it.label != Const.WALL_ID && it.id != winnerA.id && it.id != winnerB.id }.forEach {
                 delay(200)
                 matter.remove(it)
             }
@@ -89,7 +89,7 @@ class Engine(
                 delay(1)
             }
             matter.remove(winnerA, winnerB)
-            matter.addCircle("coin", middle.x, middle.y, 1.0  * Const.ANIMAL_SCALE)
+            matter.addCircle(Const.COIN_ID, middle.x, middle.y, 1.0  * Const.ANIMAL_SCALE)
             matter.timescale = 1.0
         }
     }
@@ -107,7 +107,7 @@ class Engine(
         matter.onCollisionStart { event  ->
             Resources.TOUCH.play()
             val blackList = ArrayList<Int>()
-            event.pairs.filter { it.first.label != "wall" && it.second.label != "wall" }.forEach { pair ->
+            event.pairs.filter { it.first.label != Const.WALL_ID && it.second.label != Const.WALL_ID }.forEach { pair ->
                 val bodyA = pair.first
                 val bodyB = pair.second
 
@@ -130,7 +130,7 @@ class Engine(
         }
 
         fun wall(x: Int, y: Int, width: Int, height: Int) {
-            matter.addRectangle(label = "wall", isStatic = true, x = x + width / 2, y = y + height / 2, width = width, height = height)
+            matter.addRectangle(label = Const.WALL_ID, isStatic = true, x = x + width / 2, y = y + height / 2, width = width, height = height)
         }
         val t = Const.BOARD_VIRT_WALL_THICKNESS
         val w = Const.BOARD_VIRT_WIDTH
@@ -139,7 +139,7 @@ class Engine(
         wall(w, 0, t, h)
         wall(0, h, w, t)
 
-        val qs = localStorage.getItem("quicksave")
+        val qs = localStorage.getItem(Const.QUICKSAVE_ID)
         if(qs != null) load()
         GlobalScope.launch {
             while(true) {
@@ -156,7 +156,7 @@ class Engine(
     data class Save(val animals: List<SavedAnimal>)
 
     private fun saveString(): String {
-        val animals = matter.getBodies().filter { it.label != "wall" && it.label != "coin" }.map {
+        val animals = matter.getBodies().filter { it.label != Const.WALL_ID && it.label != Const.COIN_ID }.map {
             SavedAnimal(it.label, it.position, it.angle, it.velocity)
         }
         val save = Save(animals)
@@ -164,11 +164,11 @@ class Engine(
     }
 
     private fun save() {
-        localStorage.setItem("quicksave", saveString())
+        localStorage.setItem(Const.QUICKSAVE_ID, saveString())
     }
 
     private fun load() {
-        val json = localStorage.getItem("quicksave") ?: return
+        val json = localStorage.getItem(Const.QUICKSAVE_ID) ?: return
         loadString(json)
     }
 
@@ -185,7 +185,7 @@ class Engine(
 
     private fun reset() {
         matter.getBodies().forEach {
-            if(it.label == "wall") return@forEach
+            if(it.label == Const.WALL_ID) return@forEach
             matter.remove(it)
         }
     }
@@ -274,8 +274,8 @@ class Engine(
         clouds.forEach { it.rect.also { r -> ctx.drawImage(it.image, r.x, r.y, r.width, r.height) } }
 
         matter.getBodies().forEach {  body ->
-            if(body.label == "wall") return@forEach
-            if(body.label == "coin") {
+            if(body.label == Const.WALL_ID) return@forEach
+            if(body.label == Const.COIN_ID) {
                 val x = ((body.position.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
                 val y = ((body.position.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
                 ctx.use(
