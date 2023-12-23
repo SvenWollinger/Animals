@@ -11,9 +11,7 @@ import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.Image
 import org.w3c.dom.events.MouseEvent
-import org.w3c.dom.get
 import kotlin.js.Date
-import kotlin.js.json
 
 @OptIn(DelicateCoroutinesApi::class)
 class Engine(
@@ -157,7 +155,7 @@ class Engine(
     @Serializable
     data class Save(val animals: List<SavedAnimal>)
 
-    fun saveString(): String {
+    private fun saveString(): String {
         val animals = matter.getBodies().filter { it.label != "wall" && it.label != "coin" }.map {
             SavedAnimal(it.label, it.position, it.angle, it.velocity)
         }
@@ -197,9 +195,9 @@ class Engine(
     private var cloudSpawn = 0.0
     private val cloudSpawnLimit: Double get() = (2500..15000).random().toDouble()
 
-    var frames = ArrayList<String>()
+    private var frames = ArrayList<String>()
 
-    var maxFrame = 0
+    private var maxFrame = 0
     private fun update(delta: Double) {
         if(input.isPressed("o")) {
             loadString(frames.removeLast())
