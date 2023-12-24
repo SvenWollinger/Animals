@@ -7,7 +7,6 @@ import kotlinx.serialization.json.Json
 import org.w3c.dom.Window
 import org.w3c.dom.url.URLSearchParams
 import org.w3c.xhr.XMLHttpRequest
-import kotlin.coroutines.suspendCoroutine
 import kotlin.js.Promise
 
 inline fun <reified T> id(id: String): T {
@@ -38,7 +37,7 @@ suspend inline fun <reified T> dl(url: String): Deferred<T> {
 }
 
 fun download(url: String): Deferred<String> {
-    return Promise(){ onSuccess, onError ->
+    return Promise { onSuccess, _ ->
         XMLHttpRequest().apply {
             open("GET", url)
             send()

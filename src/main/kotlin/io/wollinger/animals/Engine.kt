@@ -30,7 +30,6 @@ class GameScreen: Screen {
         matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Const.ANIMAL_SCALE, angle = angle, velocity = velocity)
     }
 
-    private var isMobile = false
 
     private var lastClick = Date.now()
 
@@ -126,7 +125,7 @@ class GameScreen: Screen {
 
         val qs = localStorage.getItem(Const.QUICKSAVE_ID)
         if(qs != null) load()
-        GlobalScope.launch {
+        launch {
             while(true) {
                 delay(250)
                 save()
@@ -239,6 +238,7 @@ class GameScreen: Screen {
     private var isDebug = false
 
     override fun render(delta: Double, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
+        var isMobile = false
         val width = canvas.width
         val height = canvas.height
         if(width >= height) {
