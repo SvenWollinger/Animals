@@ -2,7 +2,6 @@ package io.wollinger.animals
 
 import io.wollinger.animals.utils.*
 import kotlinx.browser.localStorage
-import kotlinx.browser.window
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -10,15 +9,9 @@ import kotlinx.serialization.json.Json
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.Image
-import org.w3c.dom.events.MouseEvent
 import kotlin.js.Date
 
-@OptIn(DelicateCoroutinesApi::class)
-class Engine(
-    private val canvas: HTMLCanvasElement,
-    private val ctx: CanvasRenderingContext2D,
-    private val input: Input
-) {
+class GameScreen: Screen {
     private val matter = Matter()
     private lateinit var next: Animal
 
@@ -95,14 +88,6 @@ class Engine(
     }
 
     init {
-        window.addEventListener(type = "mousedown", options = false, callback = {
-            if(lastClick + timeout > Date.now()) return@addEventListener
-            it as MouseEvent
-            val test = ((it.x - offset.x) / boardWidth).coerceIn(0.0, 1.0)
-            addAnimal(next, test)
-            newAnimal()
-            lastClick = Date.now()
-        })
 
         matter.onCollisionStart { event  ->
             Resources.TOUCH.play()
@@ -147,7 +132,6 @@ class Engine(
                 save()
             }
         }
-        window.requestAnimationFrame(::loop)
     }
 
     @Serializable
@@ -198,7 +182,22 @@ class Engine(
     private var frames = ArrayList<String>()
 
     private var maxFrame = 0
-    private fun update(delta: Double) {
+
+    private var buildInfo: BuildInfo? = null
+    init {
+        launch {
+            buildInfo = dl<BuildInfo>("/build.json").await()
+        }
+    }
+
+    override fun update(delta: Double, canvas: HTMLCanvasElement, input: Input) {
+        if(lastClick + timeout < Date.now() && input.isPressed(Button.MOUSE_LEFT)) {
+            val spawnX = ((input.mousePos.x - offset.x) / boardWidth).coerceIn(0.0, 1.0)
+            addAnimal(next, spawnX)
+            newAnimal()
+            lastClick = Date.now()
+        }
+
         if(input.isPressed("o")) {
             loadString(frames.removeLast())
         } else {
@@ -214,64 +213,59 @@ class Engine(
 
         if(clouds.size < 3 && cloudSpawn >= cloudSpawnLimit) {
             cloudSpawn = 0.0
-            val heightZone = window.innerHeight / 5
-            clouds.add(Cloud(Rectangle(-199.0, (0..heightZone).random().toDouble(), 200.0, 200.0), listOf(0.1, 0.05, 0.08).random()))
+            val heightZone = canvas.height / 5
+            clouds.add(
+                Cloud(
+                    Rectangle(-199.0, (0..heightZone).random().toDouble(), 200.0, 200.0),
+                    listOf(0.1, 0.05, 0.08).random()
+                )
+            )
         }
 
         clouds.forEach {
             it.rect.x +=  it.speed * delta
-            val screen = Rectangle(0, 0, window.innerWidth, window.innerHeight)
+            val screen = Rectangle(0, 0, canvas.width, canvas.height)
             if(!screen.intersects(it.rect)) clouds.remove(it)
         }
 
         cloudSpawn += delta
-
-    }
-
-    private var buildInfo: BuildInfo? = null
-
-    init {
-        launch {
-           buildInfo = dl<BuildInfo>("/build.json").await()
-        }
     }
 
     private var tileSize = 0.0
 
-    private fun size() = canvas.height / 16.0
     private var boardHeight = 0.0
     private var boardWidth = 0.0
     private var offset = Vector2()
     private var isDebug = false
-    private fun draw() {
-        val width = window.innerWidth
-        val height = window.innerHeight
+
+    override fun render(delta: Double, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
+        val width = canvas.width
+        val height = canvas.height
         if(width >= height) {
             isMobile = false
-            boardHeight = window.innerHeight * 0.9
+            boardHeight = canvas.height * 0.9
             boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
-            offset.x = (window.innerWidth / 2.0) - boardWidth / 2.0
+            offset.x = (canvas.width / 2.0) - boardWidth / 2.0
             offset.y = 0.0
             tileSize = boardWidth / 16
         } else if(height > width) {
             isMobile = true
-            boardWidth = window.innerWidth * 0.9
+            boardWidth = canvas.width * 0.9
             boardHeight = boardWidth * 1.2
-            offset.x = window.innerWidth * 0.05
+            offset.x = canvas.width * 0.05
             tileSize = boardWidth / 16
-            offset.y = (window.innerHeight) - boardHeight - tileSize
+            offset.y = (canvas.height) - boardHeight - tileSize
         }
 
-        if(canvas.width != window.innerWidth || canvas.height != window.innerHeight) {
-            canvas.width = window.innerWidth
-            canvas.height = window.innerHeight
+        if(canvas.width != canvas.width || canvas.height != canvas.height) {
+            canvas.width = canvas.width
+            canvas.height = canvas.height
             ctx.imageSmoothingEnabled = true
         }
-        val size = size()
 
         //Fill background
         ctx.fillStyle = "#9290ff"
-        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
 
         clouds.forEach { it.rect.also { r -> ctx.drawImage(it.image, r.x, r.y, r.width, r.height) } }
 
@@ -341,7 +335,7 @@ class Engine(
                 n += currentSize
             }
         } else {
-            val tileSize = window.innerWidth / (Animal.entries.size * 2.0 - 1)
+            val tileSize = canvas.width / (Animal.entries.size * 2.0 - 1)
 
             var i = 0
             Animal.entries.forEach { animal ->
@@ -356,7 +350,7 @@ class Engine(
 
         if(lastClick + timeout < Date.now()) {
             if(!isMobile) {
-                ctx.drawImage(next.image, offset.x + boardWidth + 128, window.innerHeight / 2.0 - 64, 128.0, 128.0)
+                ctx.drawImage(next.image, offset.x + boardWidth + 128, canvas.height / 2.0 - 64, 128.0, 128.0)
             } else {
                 val pSize = 128.0 * next.size
                 val pureX = (offset.x + boardWidth / 2) - pSize / 2
@@ -365,14 +359,15 @@ class Engine(
         }
 
         if(isDebug) {
+            val textSize = canvas.height / 16.0
             var line = 1
             fun msg(message: String) {
-                ctx.fillText(message, 0.0, size * line)
+                ctx.fillText(message, 0.0, textSize * line)
                 line++
             }
             //Debug Text
             ctx.fillStyle = "black"
-            ctx.font = "${size}px Roboto Mono"
+            ctx.font = "${textSize}px Roboto Mono"
             msg("FPS: ${fpsCounter.getString()}")
             msg("Bodies: ${matter.getBodies().size}")
             msg("Frames: ${frames.size}/$maxFrame")
@@ -383,13 +378,4 @@ class Engine(
         fpsCounter.frame()
     }
 
-    private var lastRender = 0.0
-    private fun loop(timestamp: Double) {
-        val delta = (timestamp - lastRender).coerceIn(0.0, 20.0)
-        update(delta)
-        draw()
-
-        lastRender = timestamp
-        window.requestAnimationFrame(::loop)
-    }
 }
