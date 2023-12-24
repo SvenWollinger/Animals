@@ -1,15 +1,11 @@
-package io.wollinger.animals
+package io.wollinger.animals.screens
 
+import io.wollinger.animals.input.Input
 import io.wollinger.animals.utils.fillRect
 import kotlinx.browser.window
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.events.Event
-
-interface Screen {
-    fun update(delta: Double, canvas: HTMLCanvasElement, input: Input)
-    fun render(delta: Double, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D)
-}
 
 class ScreenManager(
     private val canvas: HTMLCanvasElement,
@@ -25,6 +21,9 @@ class ScreenManager(
         window.addEventListener(type = "keyup", options = false, callback = callback)
         window.addEventListener(type = "mousedown", options = false, callback = callback)
         window.addEventListener(type = "mouseup", options = false, callback = callback)
+        window.addEventListener(type = "mousemove", options = false, callback = callback)
+        window.addEventListener(type = "touchstart", options = false, callback = callback)
+        window.addEventListener(type = "touchend", options = false, callback = callback)
 
         window.requestAnimationFrame(::loop)
     }
@@ -47,17 +46,5 @@ class ScreenManager(
 
         lastRender = timestamp
         window.requestAnimationFrame(::loop)
-    }
-}
-
-private class NoScreen: Screen {
-    private val text = "No screen loaded"
-    override fun update(delta: Double, canvas: HTMLCanvasElement, input: Input) { }
-
-    override fun render(delta: Double, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
-        val textSize = canvas.height / 10
-        ctx.fillStyle = "black"
-        ctx.font = "${textSize}px Roboto Mono"
-        ctx.fillText(text, canvas.width / 2 - ctx.measureText(text).width / 2, canvas.height / 2 - textSize / 2.0)
     }
 }

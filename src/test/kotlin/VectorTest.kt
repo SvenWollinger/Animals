@@ -1,4 +1,4 @@
-import io.wollinger.animals.utils.Vector2
+import io.wollinger.animals.math.Vector2
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

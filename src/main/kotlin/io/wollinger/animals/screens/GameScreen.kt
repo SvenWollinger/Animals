@@ -1,5 +1,13 @@
-package io.wollinger.animals
+package io.wollinger.animals.screens
 
+import io.wollinger.animals.Body
+import io.wollinger.animals.Constants
+import io.wollinger.animals.Matter
+import io.wollinger.animals.Resources
+import io.wollinger.animals.input.Button
+import io.wollinger.animals.input.Input
+import io.wollinger.animals.math.Rectangle
+import io.wollinger.animals.math.Vector2
 import io.wollinger.animals.utils.*
 import kotlinx.browser.localStorage
 import kotlinx.coroutines.*
@@ -25,22 +33,22 @@ class GameScreen: Screen {
 
     private val fpsCounter = FPSCounter()
 
-    private fun addAnimal(animal: Animal, x: Double) = addAnimal(animal, x * Const.BOARD_VIRT_WIDTH, 0.0)
+    private fun addAnimal(animal: Animal, x: Double) = addAnimal(animal, x * Constants.BOARD_VIRT_WIDTH, 0.0)
     private fun addAnimal(animal: Animal, x: Double, y: Double, angle: Double = 0.0, velocity: Vector2 = Vector2()) {
-        matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Const.ANIMAL_SCALE, angle = angle, velocity = velocity)
+        matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Constants.ANIMAL_SCALE, angle = angle, velocity = velocity)
     }
 
 
     private var lastClick = Date.now()
 
-    private val timeout = 300
+    private val timeout = 500
 
     @OptIn(DelicateCoroutinesApi::class)
     fun won(winnerA: Body, winnerB: Body) {
         lastClick = Date.now() + 100_000_000
         matter.timescale = 0.0
         GlobalScope.launch {
-            matter.getBodies().filter { it.label != Const.WALL_ID && it.id != winnerA.id && it.id != winnerB.id }.forEach {
+            matter.getBodies().filter { it.label != Constants.WALL_ID && it.id != winnerA.id && it.id != winnerB.id }.forEach {
                 delay(200)
                 matter.remove(it)
             }
@@ -81,7 +89,7 @@ class GameScreen: Screen {
                 delay(1)
             }
             matter.remove(winnerA, winnerB)
-            matter.addCircle(Const.COIN_ID, middle.x, middle.y, 1.0  * Const.ANIMAL_SCALE)
+            matter.addCircle(Constants.COIN_ID, middle.x, middle.y, 1.0  * Constants.ANIMAL_SCALE)
             matter.timescale = 1.0
         }
     }
@@ -91,7 +99,7 @@ class GameScreen: Screen {
         matter.onCollisionStart { event  ->
             Resources.TOUCH.play()
             val blackList = ArrayList<Int>()
-            event.pairs.filter { it.first.label != Const.WALL_ID && it.second.label != Const.WALL_ID }.forEach { pair ->
+            event.pairs.filter { it.first.label != Constants.WALL_ID && it.second.label != Constants.WALL_ID }.forEach { pair ->
                 val bodyA = pair.first
                 val bodyB = pair.second
 
@@ -114,16 +122,16 @@ class GameScreen: Screen {
         }
 
         fun wall(x: Int, y: Int, width: Int, height: Int) {
-            matter.addRectangle(label = Const.WALL_ID, isStatic = true, x = x + width / 2, y = y + height / 2, width = width, height = height)
+            matter.addRectangle(label = Constants.WALL_ID, isStatic = true, x = x + width / 2, y = y + height / 2, width = width, height = height)
         }
-        val t = Const.BOARD_VIRT_WALL_THICKNESS
-        val w = Const.BOARD_VIRT_WIDTH
-        val h = Const.BOARD_VIRT_HEIGHT
+        val t = Constants.BOARD_VIRT_WALL_THICKNESS
+        val w = Constants.BOARD_VIRT_WIDTH
+        val h = Constants.BOARD_VIRT_HEIGHT
         wall(-t, 0, t, h)
         wall(w, 0, t, h)
         wall(0, h, w, t)
 
-        val qs = localStorage.getItem(Const.QUICKSAVE_ID)
+        val qs = localStorage.getItem(Constants.QUICKSAVE_ID)
         if(qs != null) load()
         launch {
             while(true) {
@@ -139,7 +147,7 @@ class GameScreen: Screen {
     data class Save(val animals: List<SavedAnimal>)
 
     private fun saveString(): String {
-        val animals = matter.getBodies().filter { it.label != Const.WALL_ID && it.label != Const.COIN_ID }.map {
+        val animals = matter.getBodies().filter { it.label != Constants.WALL_ID && it.label != Constants.COIN_ID }.map {
             SavedAnimal(it.label, it.position, it.angle, it.velocity)
         }
         val save = Save(animals)
@@ -147,11 +155,11 @@ class GameScreen: Screen {
     }
 
     private fun save() {
-        localStorage.setItem(Const.QUICKSAVE_ID, saveString())
+        localStorage.setItem(Constants.QUICKSAVE_ID, saveString())
     }
 
     private fun load() {
-        val json = localStorage.getItem(Const.QUICKSAVE_ID) ?: return
+        val json = localStorage.getItem(Constants.QUICKSAVE_ID) ?: return
         loadString(json)
     }
 
@@ -168,7 +176,7 @@ class GameScreen: Screen {
 
     private fun reset() {
         matter.getBodies().forEach {
-            if(it.label == Const.WALL_ID) return@forEach
+            if(it.label == Constants.WALL_ID) return@forEach
             matter.remove(it)
         }
     }
@@ -244,7 +252,7 @@ class GameScreen: Screen {
         if(width >= height) {
             isMobile = false
             boardHeight = canvas.height * 0.9
-            boardWidth = boardHeight * Const.BOARD_VIRT_DIFF
+            boardWidth = boardHeight * Constants.BOARD_VIRT_DIFF
             offset.x = (canvas.width / 2.0) - boardWidth / 2.0
             offset.y = 0.0
             tileSize = boardWidth / 16
@@ -270,29 +278,29 @@ class GameScreen: Screen {
         clouds.forEach { it.rect.also { r -> ctx.drawImage(it.image, r.x, r.y, r.width, r.height) } }
 
         matter.getBodies().forEach {  body ->
-            if(body.label == Const.WALL_ID) return@forEach
-            if(body.label == Const.COIN_ID) {
-                val x = ((body.position.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
-                val y = ((body.position.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
+            if(body.label == Constants.WALL_ID) return@forEach
+            if(body.label == Constants.COIN_ID) {
+                val x = ((body.position.x) / Constants.BOARD_VIRT_WIDTH) * boardWidth
+                val y = ((body.position.y) / Constants.BOARD_VIRT_HEIGHT) * boardHeight
                 ctx.use(
                     translateX = x + offset.x,
                     translateY = y + offset.y,
                     angle = body.angle
                 ) {
-                    val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth)
+                    val radius = ((body.circleRadius / Constants.BOARD_VIRT_WIDTH) * boardWidth)
                     drawImage(Resources.COIN, -radius, -radius, radius * 2, radius * 2)
                 }
                 return@forEach
             }
             val animal = Animal.valueOf(body.label)
-            val x = ((body.position.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
-            val y = ((body.position.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
+            val x = ((body.position.x) / Constants.BOARD_VIRT_WIDTH) * boardWidth
+            val y = ((body.position.y) / Constants.BOARD_VIRT_HEIGHT) * boardHeight
             ctx.use(
                 translateX = x + offset.x,
                 translateY = y + offset.y,
                 angle = body.angle
             ) {
-                val radius = ((body.circleRadius / Const.BOARD_VIRT_WIDTH) * boardWidth)
+                val radius = ((body.circleRadius / Constants.BOARD_VIRT_WIDTH) * boardWidth)
                 drawImage(animal.image, -radius, -radius, radius * 2, radius * 2)
             }
         }
@@ -314,8 +322,8 @@ class GameScreen: Screen {
 
             matter.getBodies().forEach { body ->
                 val vertices = body.vertices.map {
-                    val nX = (it.x / Const.BOARD_VIRT_WIDTH) * boardWidth
-                    val nY = (it.y / Const.BOARD_VIRT_HEIGHT) * boardHeight
+                    val nX = (it.x / Constants.BOARD_VIRT_WIDTH) * boardWidth
+                    val nY = (it.y / Constants.BOARD_VIRT_HEIGHT) * boardHeight
                     Vector2(nX, nY)
                 }
                 ctx.trace(vertices)

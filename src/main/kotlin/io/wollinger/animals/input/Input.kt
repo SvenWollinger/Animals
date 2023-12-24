@@ -1,19 +1,16 @@
-package io.wollinger.animals
+package io.wollinger.animals.input
 
-import io.wollinger.animals.utils.Vector2
+import io.wollinger.animals.math.Vector2
+import org.w3c.dom.TouchEvent
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.MouseEvent
-
-enum class Button(val id: Int) {
-    MOUSE_LEFT(0), MOUSE_MIDDLE(1), MOUSE_RIGHT(2)
-}
+import org.w3c.dom.get
 
 class Input {
     private val pressed = HashSet<String>()
     var mousePos = Vector2()
     private var buttons = HashSet<Button>()
-
 
     fun handle(event: Event) {
         when(event) {
@@ -21,6 +18,17 @@ class Input {
                 when(event.type) {
                     "keydown" -> pressed.add(event.key)
                     "keyup" -> pressed.remove(event.key)
+                }
+            }
+            is TouchEvent -> {
+                //TODO: This is probably not the right way to do this, it isnt too clean
+                event.touches[0]?.let {
+                    mousePos.x = it.clientX.toDouble()
+                    mousePos.y = it.clientY.toDouble()
+                }
+                when(event.type) {
+                    "touchstart" -> buttons.add(Button.MOUSE_LEFT)
+                    "touchend" -> buttons.remove(Button.MOUSE_LEFT)
                 }
             }
             is MouseEvent -> {

@@ -1,5 +1,6 @@
-package io.wollinger.animals
+package io.wollinger.animals.utils
 
+import io.wollinger.animals.Resources
 import org.w3c.dom.Image
 
 enum class Animal(val size: Double, val image: Image) {

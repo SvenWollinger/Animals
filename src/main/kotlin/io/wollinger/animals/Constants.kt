@@ -1,6 +1,6 @@
-package io.wollinger.animals.utils
+package io.wollinger.animals
 
-object Const {
+object Constants {
     const val BOARD_VIRT_SCALE: Int = 1000
     const val BOARD_VIRT_DIFF = 0.8
     val BOARD_VIRT_HEIGHT = BOARD_VIRT_SCALE

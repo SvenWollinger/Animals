@@ -1,5 +1,7 @@
 package io.wollinger.animals.utils
 
+import io.wollinger.animals.math.Rectangle
+import io.wollinger.animals.math.Vector2
 import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.Image
 import kotlin.js.Date
@@ -31,7 +33,7 @@ fun <T> ArrayList<T>.addAll(vararg args: T) {
     addAll(args.toList())
 }
 
-fun CanvasRenderingContext2D.fillRect(x: Int, y: Int, width: Int, height: Int) = fillRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
+fun CanvasRenderingContext2D.fillRect(x: Number, y: Number, width: Number, height: Number) = fillRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
 fun CanvasRenderingContext2D.moveTo(vector2: Vector2) = moveTo(vector2.x, vector2.y)
 fun CanvasRenderingContext2D.lineTo(vector2: Vector2) = lineTo(vector2.x, vector2.y)
 fun CanvasRenderingContext2D.trace(points: List<Vector2>) {
@@ -39,6 +41,8 @@ fun CanvasRenderingContext2D.trace(points: List<Vector2>) {
     points.forEach { lineTo(it) }
     lineTo(points[0])
 }
+fun CanvasRenderingContext2D.rect(rectangle: Rectangle) = rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
+fun CanvasRenderingContext2D.fillRect(rectangle: Rectangle) = fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
 
 fun Date.prettyString(): String {
     val day = getDate()

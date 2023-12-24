@@ -1,5 +1,6 @@
-package io.wollinger.animals.utils
+package io.wollinger.animals
 
+import io.wollinger.animals.math.Vector2
 import kotlin.js.json
 
 @JsModule("matter-js")

@@ -1,4 +1,4 @@
-package io.wollinger.animals.utils
+package io.wollinger.animals.math
 
 data class Rectangle(
     var x: Double = 0.0,
@@ -13,6 +13,10 @@ data class Rectangle(
         this.y = y
         this.width = width
         this.height = height
+    }
+
+    fun contains(vector2: Vector2): Boolean {
+        return (vector2.x >= x && vector2.y >= y && vector2.x <= x + width && vector2.y <= y + height)
     }
 
     fun intersects(other: Rectangle): Boolean {
