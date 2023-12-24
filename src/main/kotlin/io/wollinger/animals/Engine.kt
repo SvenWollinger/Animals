@@ -231,7 +231,9 @@ class Engine(
     private var buildInfo: BuildInfo? = null
 
     init {
-        dl<BuildInfo>("/build.json") { buildInfo = it }
+        launch {
+           buildInfo = dl<BuildInfo>("/build.json").await()
+        }
     }
 
     private var tileSize = 0.0
