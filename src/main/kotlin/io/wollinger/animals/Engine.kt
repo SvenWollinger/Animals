@@ -320,8 +320,8 @@ class Engine(
 
             matter.getBodies().forEach { body ->
                 val vertices = body.vertices.map {
-                    val nX = ((it.x) / Const.BOARD_VIRT_WIDTH) * boardWidth
-                    val nY = ((it.y) / Const.BOARD_VIRT_HEIGHT) * boardHeight
+                    val nX = (it.x / Const.BOARD_VIRT_WIDTH) * boardWidth
+                    val nY = (it.y / Const.BOARD_VIRT_HEIGHT) * boardHeight
                     Vector2(nX, nY)
                 }
                 ctx.trace(vertices)

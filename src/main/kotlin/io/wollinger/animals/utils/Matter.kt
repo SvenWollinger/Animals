@@ -4,37 +4,37 @@ import kotlin.js.json
 
 @JsModule("matter-js")
 @JsNonModule
-private external val _matter: dynamic
+private external val matterjs: dynamic
 
 class Matter {
-    private val engine = _matter.Engine.create()
+    private val engine = matterjs.Engine.create()
 
     var timescale: Double
         get() = engine.timing.timescale as Double
         set(value) = run { engine.timing.timeScale = value }
 
     fun update(delta: Double) {
-        _matter.Engine.update(engine, delta)
+        matterjs.Engine.update(engine, delta)
     }
 
     fun addRectangle(label: String = "rectangle", x: Int, y: Int, width: Int, height: Int, isStatic: Boolean = false) {
-        val body = _matter.Bodies.rectangle(x, y, width, height)
+        val body = matterjs.Bodies.rectangle(x, y, width, height)
         body.isStatic = isStatic
         body.label = label
-        _matter.Composite.add(engine.world, arrayOf(body))
+        matterjs.Composite.add(engine.world, arrayOf(body))
     }
 
     fun getBodies(): List<Body> {
-        val temp = _matter.Composite.allBodies(engine.world) as Array<dynamic>
-        return temp.map { Body.fromDynamic(it) }.toList()
+        return (matterjs.Composite.allBodies(engine.world) as Array<dynamic>).asList().map { Body.fromDynamic(it) }
     }
 
     fun remove(vararg body: Body) {
-        body.map { it.ref }.forEach { _matter.Composite.remove(engine.world, it) }
+        fun remove(body: Body) { matterjs.Composite.remove(engine.world, body) }
+        body.map { it.ref }.forEach(::remove)
     }
 
     fun onCollisionStart(action: (CollisionEvent) -> Unit) {
-        _matter.Events.on(engine, "collisionStart") { event  ->
+        matterjs.Events.on(engine, "collisionStart") { event  ->
             val pairs = (event.pairs as Array<dynamic>).map {
                 Pair(
                     Body.fromDynamic(it.bodyA),
@@ -46,13 +46,13 @@ class Matter {
     }
 
     fun addCircle(label: String = "circle", x: Double, y: Double, radius: Double, detail: Int = 50, angle: Double = 0.0, velocity: Vector2 = Vector2()) {
-        val body = _matter.Bodies.circle(x, y, radius, detail)
+        val body = matterjs.Bodies.circle(x, y, radius, detail)
         body.label = label
         body.restitution = 0.3
-        _matter.Body.rotate(body, angle)
-        _matter.Body.setMass(body, 0.5 * radius)
-        _matter.Composite.add(engine.world, arrayOf(body))
-        _matter.Body.setVelocity(body, json(Pair("x", velocity.x), Pair("y", velocity.y)))
+        matterjs.Body.rotate(body, angle)
+        matterjs.Body.setMass(body, 0.5 * radius)
+        matterjs.Composite.add(engine.world, arrayOf(body))
+        matterjs.Body.setVelocity(body, json(Pair("x", velocity.x), Pair("y", velocity.y)))
     }
 }
 
