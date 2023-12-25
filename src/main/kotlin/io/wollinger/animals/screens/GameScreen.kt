@@ -33,7 +33,7 @@ class GameScreen: Screen {
 
     private val fpsCounter = FPSCounter()
 
-    private fun addAnimal(animal: Animal, x: Double) = addAnimal(animal, x * Constants.BOARD_VIRT_WIDTH, 0.0)
+    private fun addAnimal(animal: Animal, x: Double) = addAnimal(animal, x * Constants.BOARD_VIRT_WIDTH,  -Constants.ANIMAL_SCALE.toDouble())
     private fun addAnimal(animal: Animal, x: Double, y: Double, angle: Double = 0.0, velocity: Vector2 = Vector2()) {
         matter.addCircle(label = animal.name, x = x, y = y, radius = animal.size * Constants.ANIMAL_SCALE, angle = angle, velocity = velocity)
     }
@@ -43,12 +43,36 @@ class GameScreen: Screen {
 
     private val timeout = 500
 
+    private var isLoosing = false
+    private fun loose() {
+        if(isLoosing) return
+        launch {
+            isLoosing = true
+            lastClick = Date.now() + 100_000_000
+            matter.timescale = 0.0
+            repeat(50) {
+                matter.getBodies().forEach {
+                    it.ref.position.x += listOf(-1.0, 1.0).random()
+                    it.ref.position.y += listOf(-1.0, 1.0).random()
+                }
+                delay(50)
+            }
+            matter.getBodies().filter { it.label != Constants.WALL_ID && it.label != "death_trigger"}.forEach {
+                delay(200)
+                matter.remove(it)
+            }
+            matter.timescale = 1.0 //TODO: Somethings wrong here.. everythings.. weird
+            lastClick = Date.now()
+            isLoosing = false
+        }
+    }
+
     @OptIn(DelicateCoroutinesApi::class)
     fun won(winnerA: Body, winnerB: Body) {
         lastClick = Date.now() + 100_000_000
         matter.timescale = 0.0
         GlobalScope.launch {
-            matter.getBodies().filter { it.label != Constants.WALL_ID && it.id != winnerA.id && it.id != winnerB.id }.forEach {
+            matter.getBodies().filter { it.label != Constants.WALL_ID && it.label != "death_trigger" && it.id != winnerA.id && it.id != winnerB.id }.forEach {
                 delay(200)
                 matter.remove(it)
             }
@@ -95,11 +119,21 @@ class GameScreen: Screen {
     }
 
     init {
-
         matter.onCollisionStart { event  ->
-            Resources.TOUCH.play()
+            event.pairs.filter { it.first.label == "death_trigger" || it.second.label == "death_trigger" }.forEach { pair ->
+                launch {
+                    delay(4000)
+                    if(matter.collided(pair.first, pair.second)) loose()
+                }
+            }
+
+            var played = false
             val blackList = ArrayList<Int>()
-            event.pairs.filter { it.first.label != Constants.WALL_ID && it.second.label != Constants.WALL_ID }.forEach { pair ->
+            event.pairs.filter { it.first.label != Constants.WALL_ID && it.second.label != Constants.WALL_ID && it.first.label != "death_trigger" && it.second.label != "death_trigger" }.forEach { pair ->
+                if(!played) {
+                    Resources.TOUCH.play()
+                    played = true
+                }
                 val bodyA = pair.first
                 val bodyB = pair.second
 
@@ -121,14 +155,15 @@ class GameScreen: Screen {
             }
         }
 
-        fun wall(x: Int, y: Int, width: Int, height: Int) {
-            matter.addRectangle(label = Constants.WALL_ID, isStatic = true, x = x + width / 2, y = y + height / 2, width = width, height = height)
+        fun wall(x: Int, y: Int, width: Int, height: Int, trigger: Boolean = false, label: String = Constants.WALL_ID) {
+            matter.addRectangle(label = label, isStatic = true, x = x + width / 2, y = y + height / 2, width = width, height = height, isSensor = trigger)
         }
         val t = Constants.BOARD_VIRT_WALL_THICKNESS
         val w = Constants.BOARD_VIRT_WIDTH
         val h = Constants.BOARD_VIRT_HEIGHT
-        wall(-t, 0, t, h)
-        wall(w, 0, t, h)
+        wall(0, -t, w, t, true, "death_trigger")
+        wall(-t, -t, t, h + t)
+        wall(w, -t, t, h + t)
         wall(0, h, w, t)
 
         val qs = localStorage.getItem(Constants.QUICKSAVE_ID)
@@ -147,7 +182,7 @@ class GameScreen: Screen {
     data class Save(val animals: List<SavedAnimal>)
 
     private fun saveString(): String {
-        val animals = matter.getBodies().filter { it.label != Constants.WALL_ID && it.label != Constants.COIN_ID }.map {
+        val animals = matter.getBodies().filter { it.label != Constants.WALL_ID && it.label != Constants.COIN_ID && it.label != "death_trigger" }.map {
             SavedAnimal(it.label, it.position, it.angle, it.velocity)
         }
         val save = Save(animals)
@@ -176,7 +211,7 @@ class GameScreen: Screen {
 
     private fun reset() {
         matter.getBodies().forEach {
-            if(it.label == Constants.WALL_ID) return@forEach
+            if(it.label == Constants.WALL_ID || it.label == "death_trigger") return@forEach
             matter.remove(it)
         }
     }
@@ -260,11 +295,11 @@ class GameScreen: Screen {
         val height = canvas.height
         if(width >= height) {
             isMobile = false
-            boardHeight = canvas.height * 0.9
+            boardHeight = canvas.height * 0.8
             boardWidth = boardHeight * Constants.BOARD_VIRT_DIFF
             offset.x = (canvas.width / 2.0) - boardWidth / 2.0
-            offset.y = 0.0
             tileSize = boardWidth / 16
+            offset.y = canvas.height - boardHeight - tileSize
         } else if(height > width) {
             isMobile = true
             boardWidth = canvas.width * 0.9
@@ -288,6 +323,8 @@ class GameScreen: Screen {
 
         matter.getBodies().forEach {  body ->
             if(body.label == Constants.WALL_ID) return@forEach
+            if(body.label == "death_trigger") return@forEach
+
             if(body.label == Constants.COIN_ID) {
                 val x = ((body.position.x) / Constants.BOARD_VIRT_WIDTH) * boardWidth
                 val y = ((body.position.y) / Constants.BOARD_VIRT_HEIGHT) * boardHeight
@@ -389,6 +426,7 @@ class GameScreen: Screen {
             msg("Bodies: ${matter.getBodies().size}")
             msg("Frames: ${frames.size}/$maxFrame")
             msg("Latest frame: ${frames.last()}")
+            msg("Timescale: ${matter.timescale}")
             buildInfo?.let { msg("v${it.version} (${it.githash}) (${Date(it.timestamp).prettyString()}): ${it.commitMessage}") }
         }
 

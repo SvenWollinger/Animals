@@ -11,17 +11,23 @@ class Matter {
     private val engine = matterjs.Engine.create()
 
     var timescale: Double
-        get() = engine.timing.timescale as Double
+        get() = engine.timing.timeScale as Double
         set(value) = run { engine.timing.timeScale = value }
 
     fun update(delta: Double) {
         matterjs.Engine.update(engine, delta)
     }
 
-    fun addRectangle(label: String = "rectangle", x: Int, y: Int, width: Int, height: Int, isStatic: Boolean = false) {
+    fun collided(bodyA: Body, bodyB: Body): Boolean {
+        if(bodyA.ref == null || bodyB.ref == null) return false
+        return matterjs.Collision.collides(bodyA.ref, bodyB.ref) != null
+    }
+
+    fun addRectangle(label: String = "rectangle", x: Int, y: Int, width: Int, height: Int, isStatic: Boolean = false, isSensor: Boolean = false) {
         val body = matterjs.Bodies.rectangle(x, y, width, height)
         body.isStatic = isStatic
         body.label = label
+        body.isSensor = isSensor
         matterjs.Composite.add(engine.world, arrayOf(body))
     }
 
