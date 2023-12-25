@@ -10,8 +10,10 @@ enum class Animal(val size: Double, val image: Image) {
     MONKEY(0.8, Resources.MONKEY),
     PIG(1.0, Resources.PIG),
     PENGUIN(1.15, Resources.PENGUIN),
-    PANDA(1.3, Resources.PANDA),
-    WALRUS(1.5, Resources.WALRUS);
+    COW(1.35, Resources.COW),
+    PANDA(1.5, Resources.PANDA),
+    WALRUS(1.75, Resources.WALRUS),
+    WHALE(2.0, Resources.WHALE);
 
     fun next(): Animal? = entries.getOrNull(entries.indexOf(this) + 1)
 }

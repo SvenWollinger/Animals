@@ -12,8 +12,10 @@ object Resources {
     val MONKEY  = r("monkey")
     val PIG     = r("pig")
     val PENGUIN = r("penguin")
+    val COW = r("cow")
     val PANDA   = r("panda")
     val WALRUS  = r("walrus")
+    val WHALE          = r("whale")
 
     val FENCE = image("/img/ladder_mid.png")
     val GRASS = image("/img/grass.png")
