@@ -29,6 +29,15 @@ fun <T> Collection<T>.containsAny(vararg args: T): Boolean {
     return false
 }
 
+fun <T> ArrayList<T>.removeFirst(intRange: IntRange) {
+    subList(intRange.first, intRange.last).clear()
+}
+
+fun <T> ArrayList<T>.limitFirst(limit: Int) {
+    if(limit >= size) return
+    subList(0, size - limit).clear()
+}
+
 fun <T> ArrayList<T>.addAll(vararg args: T) {
     addAll(args.toList())
 }

@@ -197,6 +197,9 @@ class GameScreen: Screen {
         }
     }
 
+    val REWIND_FRAME_LIMIT = 5000
+    val FRAME_REWIND_COUNT = 5
+
     override fun update(delta: Double, canvas: HTMLCanvasElement, input: Input) {
         if(lastClick + timeout < Date.now() && input.isPressed(Button.MOUSE_LEFT)) {
             val spawnX = ((input.mousePos.x - offset.x) / boardWidth).coerceIn(0.0, 1.0)
@@ -206,9 +209,13 @@ class GameScreen: Screen {
         }
 
         if(input.isPressed("o")) {
-            loadString(frames.removeLast())
+            if(frames.size > FRAME_REWIND_COUNT) {
+                repeat(FRAME_REWIND_COUNT - 1) { frames.removeLast() }
+                loadString(frames.removeLast())
+            }
         } else {
             frames.add(saveString())
+            frames.limitFirst(REWIND_FRAME_LIMIT)
             maxFrame = frames.size
         }
         if(input.isJustPressed("s")) save()
@@ -243,7 +250,9 @@ class GameScreen: Screen {
     private var boardHeight = 0.0
     private var boardWidth = 0.0
     private var offset = Vector2()
-    private var isDebug = false
+    private var isDebug: Boolean
+        get() = (localStorage.getItem("debug") ?: "false").toBoolean()
+        set(value) = localStorage.setItem("debug", value.toString())
 
     override fun render(delta: Double, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
         var isMobile = false
