@@ -43,6 +43,7 @@ class Input {
     }
 
     fun isPressed(button: Button) = buttons.contains(button)
+    fun clearPressed(button: Button) = buttons.remove(button)
 
     fun isPressed(key: String) = pressed.contains(key)
     fun isJustPressed(key: String): Boolean {

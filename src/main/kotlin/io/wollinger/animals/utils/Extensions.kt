@@ -52,6 +52,7 @@ fun CanvasRenderingContext2D.trace(points: List<Vector2>) {
 }
 fun CanvasRenderingContext2D.rect(rectangle: Rectangle) = rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
 fun CanvasRenderingContext2D.fillRect(rectangle: Rectangle) = fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
+fun CanvasRenderingContext2D.drawImage(image: Image, rectangle: Rectangle) = drawImage(image, rectangle.x, rectangle.y, rectangle.width, rectangle.height)
 
 fun Date.prettyString(): String {
     val day = getDate()

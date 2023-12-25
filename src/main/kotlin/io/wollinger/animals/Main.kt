@@ -1,6 +1,5 @@
 package io.wollinger.animals
 
-import io.wollinger.animals.screens.GameScreen
 import io.wollinger.animals.screens.MenuScreen
 import io.wollinger.animals.screens.ScreenManager
 import kotlinx.browser.document
@@ -18,5 +17,5 @@ fun main() {
     } as HTMLCanvasElement
 
     val screenManager = ScreenManager(canvas, (canvas.getContext("2d") as CanvasRenderingContext2D))
-    screenManager.screen = GameScreen()//MenuScreen(screenManager)
+    screenManager.screen = MenuScreen(screenManager)
 }
