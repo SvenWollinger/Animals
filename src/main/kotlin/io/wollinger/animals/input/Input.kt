@@ -1,6 +1,8 @@
 package io.wollinger.animals.input
 
 import io.wollinger.animals.math.Vector2
+import io.wollinger.animals.utils.containsAny
+import kotlinx.browser.window
 import org.w3c.dom.TouchEvent
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
@@ -9,26 +11,30 @@ import org.w3c.dom.get
 
 class Input {
     private val pressed = HashSet<String>()
+    private val checked = HashSet<String>()
     var mousePos = Vector2()
     private var buttons = HashSet<Button>()
 
     fun handle(event: Event) {
+        //Firefox does not support the touch event on devices without touch
+        val hasTouch = window.asDynamic().TouchEvent != undefined
+        if(hasTouch && event is TouchEvent) {
+            event.touches[0]?.let { mousePos.set(x = it.clientX, y = it.clientY) }
+            when(event.type) {
+                "touchstart" -> buttons.add(Button.MOUSE_LEFT)
+                "touchend" -> buttons.remove(Button.MOUSE_LEFT)
+            }
+            return
+        }
+
         when(event) {
             is KeyboardEvent -> {
                 when(event.type) {
                     "keydown" -> pressed.add(event.key)
-                    "keyup" -> pressed.remove(event.key)
-                }
-            }
-            is TouchEvent -> {
-                //TODO: This is probably not the right way to do this, it isnt too clean
-                event.touches[0]?.let {
-                    mousePos.x = it.clientX.toDouble()
-                    mousePos.y = it.clientY.toDouble()
-                }
-                when(event.type) {
-                    "touchstart" -> buttons.add(Button.MOUSE_LEFT)
-                    "touchend" -> buttons.remove(Button.MOUSE_LEFT)
+                    "keyup" -> {
+                        pressed.remove(event.key)
+                        checked.remove(event.key)
+                    }
                 }
             }
             is MouseEvent -> {
@@ -47,8 +53,9 @@ class Input {
 
     fun isPressed(key: String) = pressed.contains(key)
     fun isJustPressed(key: String): Boolean {
-        if(isPressed(key)) {
+        if(isPressed(key) && !checked.containsAny(key)) {
             pressed.remove(key)
+            checked.add(key)
             return true
         }
         return false
