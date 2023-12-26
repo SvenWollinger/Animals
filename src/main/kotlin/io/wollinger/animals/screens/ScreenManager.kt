@@ -16,14 +16,8 @@ class ScreenManager(
     var screen: Screen? = null
 
     init {
-        val callback: (Event) -> Unit = { input.handle(it) }
-        window.addEventListener(type = "keydown", options = false, callback = callback)
-        window.addEventListener(type = "keyup", options = false, callback = callback)
-        window.addEventListener(type = "mousedown", options = false, callback = callback)
-        window.addEventListener(type = "mouseup", options = false, callback = callback)
-        window.addEventListener(type = "mousemove", options = false, callback = callback)
-        window.addEventListener(type = "touchstart", options = false, callback = callback)
-        window.addEventListener(type = "touchend", options = false, callback = callback)
+        val genericEvents = listOf("keydown", "keyup", "mousedown", "mouseup", "mousemove", "touchstart", "touchmove", "touchend")
+        genericEvents.forEach { type -> window.addEventListener(type = type, options = false, callback = { event -> input.handle(event) }) }
 
         window.requestAnimationFrame(::loop)
     }
