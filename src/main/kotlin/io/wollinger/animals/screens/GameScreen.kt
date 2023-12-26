@@ -1,9 +1,6 @@
 package io.wollinger.animals.screens
 
-import io.wollinger.animals.Body
-import io.wollinger.animals.Constants
-import io.wollinger.animals.Matter
-import io.wollinger.animals.Resources
+import io.wollinger.animals.*
 import io.wollinger.animals.input.Button
 import io.wollinger.animals.input.Input
 import io.wollinger.animals.math.Rectangle
@@ -57,7 +54,7 @@ class GameScreen: Screen {
                 }
                 delay(50)
             }
-            matter.getBodies().filter { it.label != Constants.WALL_ID && it.label != "death_trigger"}.forEach {
+            matter.getBodies().filter { !isWhitelist(it.label) }.forEach {
                 delay(200)
                 matter.remove(it)
             }
@@ -72,7 +69,7 @@ class GameScreen: Screen {
         lastClick = Date.now() + 100_000_000
         matter.timescale = 0.0
         GlobalScope.launch {
-            matter.getBodies().filter { it.label != Constants.WALL_ID && it.label != "death_trigger" && it.id != winnerA.id && it.id != winnerB.id }.forEach {
+            matter.getBodies().filter { !isWhitelist(it.label) && it.id != winnerA.id && it.id != winnerB.id }.forEach {
                 delay(200)
                 matter.remove(it)
             }
@@ -129,7 +126,7 @@ class GameScreen: Screen {
 
             var played = false
             val blackList = ArrayList<Int>()
-            event.pairs.filter { it.first.label != Constants.WALL_ID && it.second.label != Constants.WALL_ID && it.first.label != "death_trigger" && it.second.label != "death_trigger" }.forEach { pair ->
+            event.pairs.filter { !isWhitelist(it.first.label) && !isWhitelist(it.second.label) }.forEach { pair ->
                 if(!played) {
                     Resources.TOUCH.play()
                     played = true
@@ -182,7 +179,7 @@ class GameScreen: Screen {
     data class Save(val animals: List<SavedAnimal>)
 
     private fun saveString(): String {
-        val animals = matter.getBodies().filter { it.label != Constants.WALL_ID && it.label != Constants.COIN_ID && it.label != "death_trigger" }.map {
+        val animals = matter.getBodies().filter { !isWhitelist(it.label) }.map {
             SavedAnimal(it.label, it.position, it.angle, it.velocity)
         }
         val save = Save(animals)
@@ -211,7 +208,7 @@ class GameScreen: Screen {
 
     private fun reset() {
         matter.getBodies().forEach {
-            if(it.label == Constants.WALL_ID || it.label == "death_trigger") return@forEach
+            if(isWhitelist(it.label)) return@forEach
             matter.remove(it)
         }
     }
@@ -236,6 +233,10 @@ class GameScreen: Screen {
     val FRAME_REWIND_COUNT = 5
 
     override fun update(delta: Double, canvas: HTMLCanvasElement, input: Input) {
+        if(input.isJustPressed("j")) {
+            matter.addRectangle(label = "dummy", x = 0, y = 0, 10, 10)
+        }
+
         if(lastClick + timeout < Date.now() && input.isPressed(Button.MOUSE_LEFT)) {
             val spawnX = ((input.mousePos.x - offset.x) / boardWidth).coerceIn(0.0, 1.0)
             addAnimal(next, spawnX)
@@ -322,9 +323,6 @@ class GameScreen: Screen {
         clouds.forEach { it.rect.also { r -> ctx.drawImage(it.image, r.x, r.y, r.width, r.height) } }
 
         matter.getBodies().forEach {  body ->
-            if(body.label == Constants.WALL_ID) return@forEach
-            if(body.label == "death_trigger") return@forEach
-
             if(body.label == Constants.COIN_ID) {
                 val x = ((body.position.x) / Constants.BOARD_VIRT_WIDTH) * boardWidth
                 val y = ((body.position.y) / Constants.BOARD_VIRT_HEIGHT) * boardHeight
@@ -338,6 +336,8 @@ class GameScreen: Screen {
                 }
                 return@forEach
             }
+            if(isWhitelist(body.label)) return@forEach
+
             val animal = Animal.valueOf(body.label)
             val x = ((body.position.x) / Constants.BOARD_VIRT_WIDTH) * boardWidth
             val y = ((body.position.y) / Constants.BOARD_VIRT_HEIGHT) * boardHeight

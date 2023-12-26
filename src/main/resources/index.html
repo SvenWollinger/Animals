@@ -11,5 +11,9 @@
     <body>
         <game></game>
     </body>
-    <script src="app.js"></script>
+    <script>
+        var appScript = document.createElement("script");
+        appScript.setAttribute("src", "/app.js");
+        document.head.appendChild(appScript);
+    </script>
 </html>

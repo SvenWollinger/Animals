@@ -13,4 +13,8 @@ object Constants {
     const val WALL_ID = "wall"
     const val COIN_ID = "coin"
     const val QUICKSAVE_ID = "quicksave"
+    const val DEATH_TRIGGER_ID = "death_trigger"
+    val WHITELIST_IDS = listOf(WALL_ID, COIN_ID, QUICKSAVE_ID, DEATH_TRIGGER_ID, "dummy")
 }
+
+fun isWhitelist(label: String) = Constants.WHITELIST_IDS.contains(label)
