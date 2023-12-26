@@ -117,7 +117,8 @@ class GameScreen: Screen {
 
     init {
         matter.onCollisionStart { event  ->
-            event.pairs.filter { it.first.label == "death_trigger" || it.second.label == "death_trigger" }.forEach { pair ->
+            event.pairs.filter { it.first.label == Constants.DEATH_TRIGGER_ID || it.second.label == Constants.DEATH_TRIGGER_ID }.forEach { pair ->
+                if(!isAnimal(pair.first.label) && !isAnimal(pair.second.label)) return@forEach
                 launch {
                     delay(4000)
                     if(matter.collided(pair.first, pair.second)) loose()
@@ -208,7 +209,7 @@ class GameScreen: Screen {
 
     private fun reset() {
         matter.getBodies().forEach {
-            if(isWhitelist(it.label)) return@forEach
+            if(isResetSafe(it.label)) return@forEach
             matter.remove(it)
         }
     }
@@ -229,14 +230,19 @@ class GameScreen: Screen {
         }
     }
 
-    val REWIND_FRAME_LIMIT = 5000
-    val FRAME_REWIND_COUNT = 5
+    private val REWIND_FRAME_LIMIT = 5000
+    private val FRAME_REWIND_COUNT = 5
 
     override fun update(delta: Double, canvas: HTMLCanvasElement, input: Input) {
-        if(input.isJustPressed("j")) {
-            matter.addRectangle(label = "dummy", x = 0, y = 0, 10, 10)
+        //Debug box
+        if(input.isJustPressed("j") && isDebug) {
+            val spawnX = ((input.mousePos.x - offset.x) / boardWidth) * Constants.BOARD_VIRT_WIDTH
+            val spawnY = ((input.mousePos.y - offset.y) / boardHeight) * Constants.BOARD_VIRT_HEIGHT
+            val size = Constants.BOARD_VIRT_WIDTH / 5
+            matter.addRectangle(label = Constants.DEBUG_OBJECT_ID, x = spawnX.toInt(), y = spawnY.toInt(), size * 2, size)
         }
 
+        //Spawn animal + timer function
         if(lastClick + timeout < Date.now() && input.isPressed(Button.MOUSE_LEFT)) {
             val spawnX = ((input.mousePos.x - offset.x) / boardWidth).coerceIn(0.0, 1.0)
             addAnimal(next, spawnX)
@@ -244,6 +250,7 @@ class GameScreen: Screen {
             lastClick = Date.now()
         }
 
+        //Rewind test code, might become an ability in the future
         if(input.isPressed("o")) {
             if(frames.size > FRAME_REWIND_COUNT) {
                 repeat(FRAME_REWIND_COUNT - 1) { frames.removeLast() }
@@ -254,13 +261,17 @@ class GameScreen: Screen {
             frames.limitFirst(REWIND_FRAME_LIMIT)
             maxFrame = frames.size
         }
+
+        //Hotkeys
         if(input.isJustPressed("s")) save()
         if(input.isJustPressed("r")) reset()
         if(input.isJustPressed("l")) load()
-
-        matter.update(delta)
         if(input.isJustPressed("f")) isDebug = !isDebug
 
+        //Update physics
+        matter.update(delta)
+
+        //Cloud logic
         if(clouds.size < 3 && cloudSpawn >= cloudSpawnLimit) {
             cloudSpawn = 0.0
             val heightZone = canvas.height / 5
@@ -271,13 +282,11 @@ class GameScreen: Screen {
                 )
             )
         }
-
         clouds.forEach {
             it.rect.x +=  it.speed * delta
             val screen = Rectangle(0, 0, canvas.width, canvas.height)
             if(!screen.intersects(it.rect)) clouds.remove(it)
         }
-
         cloudSpawn += delta
     }
 
@@ -310,19 +319,16 @@ class GameScreen: Screen {
             offset.y = (canvas.height) - boardHeight - tileSize
         }
 
-        if(canvas.width != canvas.width || canvas.height != canvas.height) {
-            canvas.width = canvas.width
-            canvas.height = canvas.height
-            ctx.imageSmoothingEnabled = true
-        }
-
         //Fill background
         ctx.fillStyle = "#9290ff"
         ctx.fillRect(0, 0, canvas.width, canvas.height)
 
+        //Render clouds
         clouds.forEach { it.rect.also { r -> ctx.drawImage(it.image, r.x, r.y, r.width, r.height) } }
 
+        //Render bodies
         matter.getBodies().forEach {  body ->
+            //Coin
             if(body.label == Constants.COIN_ID) {
                 val x = ((body.position.x) / Constants.BOARD_VIRT_WIDTH) * boardWidth
                 val y = ((body.position.y) / Constants.BOARD_VIRT_HEIGHT) * boardHeight
@@ -336,8 +342,26 @@ class GameScreen: Screen {
                 }
                 return@forEach
             }
-            if(isWhitelist(body.label)) return@forEach
 
+            //Debug Box
+            if(body.label == Constants.DEBUG_OBJECT_ID) {
+                val x = ((body.position.x) / Constants.BOARD_VIRT_WIDTH) * boardWidth
+                val y = ((body.position.y) / Constants.BOARD_VIRT_HEIGHT) * boardHeight
+                ctx.use(
+                    translateX = x + offset.x,
+                    translateY = y + offset.y,
+                    angle = body.angle
+                ) {
+                    val boxWidth = ((body.ref.width as Double / Constants.BOARD_VIRT_WIDTH) * boardWidth)
+                    val boxHeight = ((body.ref.height as Double / Constants.BOARD_VIRT_HEIGHT) * boardHeight)
+
+                    drawImage(Resources.WOOD_CRATE, -(boxWidth / 2), -(boxHeight / 2), boxWidth, boxHeight)
+                }
+                return@forEach
+            }
+
+            if(!isAnimal(body.label)) return@forEach
+            //Render our funny little animals
             val animal = Animal.valueOf(body.label)
             val x = ((body.position.x) / Constants.BOARD_VIRT_WIDTH) * boardWidth
             val y = ((body.position.y) / Constants.BOARD_VIRT_HEIGHT) * boardHeight
@@ -351,33 +375,44 @@ class GameScreen: Screen {
             }
         }
 
+        //Draw walls
         for(i in 0 until (boardHeight / tileSize).toInt() + 1) {
             ctx.drawImage(Resources.FENCE, offset.x - tileSize, offset.y + i * tileSize, tileSize, tileSize)
             ctx.drawImage(Resources.FENCE, offset.x + boardWidth, offset.y + i * tileSize, tileSize, tileSize)
         }
 
+        //Draw floor
         for(i in -1 until (boardWidth / tileSize).toInt() + 1) {
             ctx.drawImage(Resources.GRASS, offset.x + i * tileSize, offset.y + boardHeight, tileSize, tileSize)
         }
 
+        //Draw collision outlines
         if(isDebug) {
             ctx.translate(offset.x, offset.y)
-            ctx.fillStyle = "black"
-            ctx.strokeStyle = "black"
-            ctx.beginPath()
+
 
             matter.getBodies().forEach { body ->
+                fun a(opacity: String) = when(body.label) {
+                    Constants.DEATH_TRIGGER_ID -> "rgba(255, 0, 0, $opacity)"
+                    Constants.WALL_ID -> "rgba(0, 0, 255, $opacity)"
+                    Constants.DEBUG_OBJECT_ID -> "rgba(255, 255, 255, $opacity)"
+                    else -> "rgba(0, 255, 0, $opacity)"
+                }
+                ctx.fillStyle = a("0.25")
+                ctx.strokeStyle = a("1.0")
+                ctx.beginPath()
                 val vertices = body.vertices.map {
                     val nX = (it.x / Constants.BOARD_VIRT_WIDTH) * boardWidth
                     val nY = (it.y / Constants.BOARD_VIRT_HEIGHT) * boardHeight
                     Vector2(nX, nY)
                 }
                 ctx.trace(vertices)
+                ctx.lineWidth = 2.0
+                ctx.fill()
+                ctx.stroke()
             }
 
-            ctx.lineWidth = 1.0
-            ctx.strokeStyle = "black"
-            ctx.stroke()
+
             ctx.translate(-offset.x, -offset.y)
         }
 

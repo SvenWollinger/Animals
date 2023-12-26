@@ -20,6 +20,7 @@ object Resources {
     val FENCE = image("/img/ladder_mid.png")
     val GRASS = image("/img/grass.png")
     val ARROW_RIGHT = image("/img/arrowRight.png")
+    val WOOD_CRATE = image("/img/wood_crate.png")
 
     val POOF = Audio("/sound/poof.ogg")
     val TOUCH = Audio("/sound/touch.mp3")

@@ -24,7 +24,7 @@ class Matter {
     }
 
     fun addRectangle(label: String = "rectangle", x: Int, y: Int, width: Int, height: Int, isStatic: Boolean = false, isSensor: Boolean = false) {
-        val body = matterjs.Bodies.rectangle(x, y, width, height)
+        val body = matterjs.Bodies.rectangle(x, y, width, height, json(Pair("width", width), Pair("height", height)))
         body.isStatic = isStatic
         body.label = label
         body.isSensor = isSensor
