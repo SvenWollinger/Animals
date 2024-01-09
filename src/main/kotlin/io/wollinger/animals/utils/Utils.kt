@@ -7,6 +7,7 @@ import kotlinx.serialization.json.Json
 import org.w3c.dom.Window
 import org.w3c.dom.url.URLSearchParams
 import org.w3c.xhr.XMLHttpRequest
+import kotlin.js.Date
 import kotlin.js.Promise
 
 inline fun <reified T> id(id: String): T {
@@ -39,7 +40,7 @@ suspend inline fun <reified T> dl(url: String): Deferred<T> {
 fun download(url: String): Deferred<String> {
     return Promise { onSuccess, _ ->
         XMLHttpRequest().apply {
-            open("GET", url)
+            open("GET", "$url?t=${Date.now()}")
             send()
             onreadystatechange = {
                 if(readyState == XMLHttpRequest.DONE && status == 200.toShort())
